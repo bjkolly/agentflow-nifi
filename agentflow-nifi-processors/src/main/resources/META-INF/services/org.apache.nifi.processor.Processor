@@ -1,0 +1,7 @@
+com.agentflow.nifi.processors.LLMInferenceProcessor
+com.agentflow.nifi.processors.ToolExecutorProcessor
+com.agentflow.nifi.processors.MemoryManagerProcessor
+com.agentflow.nifi.processors.TaskPlannerProcessor
+com.agentflow.nifi.processors.AgentRouterProcessor
+com.agentflow.nifi.processors.HumanInTheLoopProcessor
+com.agentflow.nifi.processors.GuardrailsEnforcerProcessor

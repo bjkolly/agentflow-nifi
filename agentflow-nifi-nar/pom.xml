@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.agentflow</groupId>
+        <artifactId>agentflow-nifi</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>agentflow-nifi-nar</artifactId>
+    <packaging>nar</packaging>
+
+    <name>AgentFlow NiFi NAR</name>
+    <description>
+        NiFi Archive (NAR) package containing all AgentFlow processors
+        and controller services. Deploy this file to $NIFI_HOME/lib/.
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.agentflow</groupId>
+            <artifactId>agentflow-nifi-processors</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-nar-maven-plugin</artifactId>
+                <extensions>true</extensions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
