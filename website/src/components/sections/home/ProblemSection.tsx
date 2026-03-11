@@ -23,25 +23,8 @@ export default function ProblemSection() {
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-16">
-          {/* Status Quo - Bad */}
+          {/* AgentFlow Way - Good (left) */}
           <FadeUp>
-            <GlassCard borderColor="border-guard">
-              <h3 className="text-xl font-semibold text-guard mb-6">
-                The Status Quo
-              </h3>
-              <ul className="space-y-4">
-                {PROBLEM_ITEMS.bad.map((item, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <span className="text-guard text-lg mt-0.5 shrink-0">&#10007;</span>
-                    <span className="text-text-muted">{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </GlassCard>
-          </FadeUp>
-
-          {/* AgentFlow Way - Good */}
-          <FadeUp delay={0.15}>
             <GlassCard borderColor="border-planner">
               <h3 className="text-xl font-semibold text-planner mb-6">
                 The AgentFlow Way
@@ -50,6 +33,23 @@ export default function ProblemSection() {
                 {PROBLEM_ITEMS.good.map((item, i) => (
                   <li key={i} className="flex items-start gap-3">
                     <span className="text-planner text-lg mt-0.5 shrink-0">&#10003;</span>
+                    <span className="text-text-muted">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </GlassCard>
+          </FadeUp>
+
+          {/* Status Quo - Bad (right) */}
+          <FadeUp delay={0.15}>
+            <GlassCard borderColor="border-guard">
+              <h3 className="text-xl font-semibold text-guard mb-6">
+                The Status Quo
+              </h3>
+              <ul className="space-y-4">
+                {PROBLEM_ITEMS.bad.map((item, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <span className="text-guard text-lg mt-0.5 shrink-0">&#10007;</span>
                     <span className="text-text-muted">{item}</span>
                   </li>
                 ))}
