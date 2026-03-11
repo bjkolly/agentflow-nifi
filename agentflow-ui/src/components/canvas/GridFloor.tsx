@@ -12,6 +12,7 @@ const vertexShader = `
 
 const fragmentShader = `
   uniform vec3 uColor;
+  uniform vec3 uAccent;
   uniform float uLineWidth;
   varying vec3 vWorldPosition;
 
@@ -24,10 +25,20 @@ const fragmentShader = `
 
     float line = 1.0 - min(lineX, lineZ);
 
-    float distFromCenter = length(vWorldPosition.xz) / 100.0;
+    // Major grid lines every 5 units
+    float majorX = abs(fract(vWorldPosition.x / 5.0 - 0.5) - 0.5) * 5.0;
+    float majorZ = abs(fract(vWorldPosition.z / 5.0 - 0.5) - 0.5) * 5.0;
+    float majorLineX = smoothstep(uLineWidth * 2.0, uLineWidth * 2.0 + 0.02, majorX);
+    float majorLineZ = smoothstep(uLineWidth * 2.0, uLineWidth * 2.0 + 0.02, majorZ);
+    float majorLine = 1.0 - min(majorLineX, majorLineZ);
+
+    float distFromCenter = length(vWorldPosition.xz) / 80.0;
     float fade = 1.0 - smoothstep(0.3, 1.0, distFromCenter);
 
-    gl_FragColor = vec4(uColor, line * 0.25 * fade);
+    vec3 color = mix(uColor, uAccent, majorLine * 0.5);
+    float alpha = max(line * 0.35, majorLine * 0.5) * fade;
+
+    gl_FragColor = vec4(color, alpha);
   }
 `;
 
@@ -37,7 +48,8 @@ export default function GridFloor() {
       vertexShader,
       fragmentShader,
       uniforms: {
-        uColor: { value: new THREE.Color('#1a3a5c') },
+        uColor: { value: new THREE.Color('#1e4a6e') },
+        uAccent: { value: new THREE.Color('#2a6fa8') },
         uLineWidth: { value: 0.02 },
       },
       transparent: true,

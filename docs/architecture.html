@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentFlow — Architecture</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #0d1117;
+    --surface2: #111827;
+    --border: #1f2937;
+    --text: #e5e7eb;
+    --text-muted: #9ca3af;
+    --text-dim: #6b7280;
+    --llm: #7c3aed;
+    --tool: #f59e0b;
+    --memory: #06b6d4;
+    --planner: #10b981;
+    --router: #3b82f6;
+    --hitl: #ec4899;
+    --guard: #ef4444;
+    --accent: #3b82f6;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Header */
+  .header {
+    padding: 3rem 2rem 2rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(124,58,237,0.08) 0%, transparent 100%);
+  }
+  .header h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #7c3aed, #3b82f6, #06b6d4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.5rem;
+  }
+  .header p { color: var(--text-muted); font-size: 1.1rem; }
+  .header .version { font-size: 0.75rem; color: var(--text-dim); margin-top: 0.5rem; }
+
+  /* Navigation */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,10,15,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 2rem;
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+  }
+  .nav a {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 500;
+    white-space: nowrap;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+  .nav a:hover { color: #fff; background: rgba(255,255,255,0.06); text-decoration: none; }
+
+  /* Container */
+  .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+  /* Section */
+  .section { margin-bottom: 3rem; }
+  .section-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-desc { color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.95rem; }
+
+  /* Glassmorphic Card */
+  .glass-card {
+    background: rgba(13,17,23,0.8);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    backdrop-filter: blur(8px);
+    transition: all 0.3s ease;
+    margin-bottom: 1rem;
+  }
+  .glass-card:hover { border-color: rgba(255,255,255,0.1); }
+  .glass-card.expanded { border-color: rgba(255,255,255,0.15); }
+
+  /* Expandable Card */
+  .card-header {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    gap: 1rem;
+  }
+  .card-header .color-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .card-header h3 { font-size: 1.1rem; font-weight: 600; flex: 1; }
+  .card-header .badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.06);
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .card-header .chevron {
+    font-size: 1.2rem;
+    transition: transform 0.3s;
+    color: var(--text-dim);
+  }
+  .card-header .chevron.open { transform: rotate(180deg); }
+  .card-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease, padding 0.3s ease;
+    padding-top: 0;
+  }
+  .card-body.open { max-height: 800px; padding-top: 1rem; }
+  .card-body .prop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 2rem; }
+  .card-body .prop { display: flex; gap: 0.5rem; font-size: 0.85rem; }
+  .card-body .prop-key { color: var(--text-dim); min-width: 140px; }
+  .card-body .prop-val { color: var(--text); }
+  .card-body .relationship-list { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.75rem; }
+  .card-body .rel-badge {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    font-weight: 500;
+    border: 1px solid;
+  }
+  .card-body h4 { font-size: 0.9rem; font-weight: 600; color: var(--text-muted); margin: 0.75rem 0 0.5rem; }
+
+  /* Grid layouts */
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(500px, 1fr)); gap: 1rem; }
+  .grid-4 { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .tab-btn {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 0.5rem 1.2rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .tab-btn:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+  .tab-btn.active {
+    background: rgba(124,58,237,0.15);
+    border-color: var(--llm);
+    color: #fff;
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* NiFi Mapping Table */
+  .mapping-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  .mapping-table th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    background: rgba(255,255,255,0.03);
+    color: var(--text-muted);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+  }
+  .mapping-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .mapping-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* Tech Stack */
+  .tech-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem; }
+  .tech-item {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+  }
+  .tech-item .tech-layer { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 0.25rem; }
+  .tech-item .tech-name { font-weight: 600; font-size: 0.9rem; }
+
+  /* Flow Animation */
+  .flow-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+    min-height: 280px;
+  }
+  .flow-step {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border: 1px solid;
+    position: relative;
+    transition: all 0.3s;
+  }
+  .flow-step.active { box-shadow: 0 0 20px rgba(124,58,237,0.3); transform: scale(1.05); }
+  .flow-arrow {
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-dim);
+    font-size: 1.2rem;
+    margin: 0 0.5rem;
+  }
+  .flow-row { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 1rem; }
+  .flow-label { font-size: 0.7rem; color: var(--text-dim); text-align: center; display: block; margin-top: 0.25rem; }
+
+  /* Pattern diagrams */
+  .pattern-diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+  }
+  .pattern-node {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: 1px solid;
+    margin: 0.25rem;
+  }
+
+  /* FlowFile structure */
+  .flowfile-box {
+    background: var(--surface);
+    border: 1px solid var(--tool);
+    border-radius: 12px;
+    padding: 1.5rem;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.8rem;
+    line-height: 1.8;
+  }
+  .ff-section { color: var(--text-muted); font-weight: 600; margin-top: 0.75rem; }
+  .ff-key { color: var(--memory); }
+  .ff-val { color: var(--text); }
+  .ff-comment { color: var(--text-dim); font-style: italic; }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 2rem;
+    border-top: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 0.8rem;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .grid-2 { grid-template-columns: 1fr; }
+    .grid-4 { grid-template-columns: 1fr 1fr; }
+    .header h1 { font-size: 1.8rem; }
+    .container { padding: 1rem; }
+    .card-body .prop-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <h1>AgentFlow</h1>
+  <p>Agentic AI Orchestration Platform on Apache NiFi</p>
+  <div class="version">v0.1 &mdash; Architecture Reference</div>
+</div>
+
+<!-- Navigation -->
+<nav class="nav" id="nav">
+  <a href="#overview">Overview</a>
+  <a href="#nifi-mapping">NiFi Mapping</a>
+  <a href="#processors">Processors</a>
+  <a href="#services">Controller Services</a>
+  <a href="#agentic-loop">Agentic Loop</a>
+  <a href="#patterns">Multi-Agent Patterns</a>
+  <a href="#flowfile">FlowFile Structure</a>
+  <a href="#tech-stack">Tech Stack</a>
+</nav>
+
+<div class="container">
+
+  <!-- Overview Section -->
+  <section class="section" id="overview">
+    <h2 class="section-title">Architecture Overview</h2>
+    <p class="section-desc">
+      AgentFlow reimagines Apache NiFi's dataflow paradigm as the foundation for composing, orchestrating, and governing autonomous AI agents. Each NiFi concept maps directly to an agentic AI primitive, providing enterprise-grade orchestration out of the box.
+    </p>
+    <div class="grid-4">
+      <div class="glass-card" style="border-top: 3px solid var(--router);">
+        <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--router);">Interface Layer</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted);">3D React Three Fiber UI, NiFi Canvas, REST API Gateway, FlowSync for flow versioning.</p>
+      </div>
+      <div class="glass-card" style="border-top: 3px solid var(--llm);">
+        <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--llm);">Agent Orchestration</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted);">NiFi Runtime with Process Groups as agents, 7 custom processors, connections as communication channels.</p>
+      </div>
+      <div class="glass-card" style="border-top: 3px solid var(--memory);">
+        <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--memory);">Controller Services</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted);">Shared resources: LLM clients, vector databases, tool registries, guardrails enforcement.</p>
+      </div>
+      <div class="glass-card" style="border-top: 3px solid var(--text-dim);">
+        <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--text-dim);">Infrastructure</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted);">LLM APIs, Vector DBs, Kafka, Redis, Vault, ZooKeeper for clustering.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- NiFi Mapping -->
+  <section class="section" id="nifi-mapping">
+    <h2 class="section-title">NiFi &harr; Agentic AI Mapping</h2>
+    <p class="section-desc">Every NiFi primitive has a direct analog in the agentic AI domain.</p>
+    <div class="glass-card" style="padding: 0; overflow: hidden;">
+      <table class="mapping-table">
+        <thead>
+          <tr><th>NiFi Concept</th><th>Agentic AI Mapping</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Process Group</td><td>Agent / Agent Team</td><td>Self-contained autonomous agent with its own capabilities</td></tr>
+          <tr><td>Processor</td><td>Agent Capability</td><td>LLM call, tool execution, memory, planning, routing</td></tr>
+          <tr><td>FlowFile</td><td>Task / Message</td><td>Unit of work flowing between agents with full context</td></tr>
+          <tr><td>FlowFile Attributes</td><td>Task Metadata</td><td>task.id, iteration count, token budget, routing hints</td></tr>
+          <tr><td>FlowFile Content</td><td>Task Payload</td><td>Conversation history, plan, tool results, final output</td></tr>
+          <tr><td>Connection / Queue</td><td>Communication Channel</td><td>Buffered channel between agents with back-pressure</td></tr>
+          <tr><td>Back-pressure</td><td>Rate Limiting</td><td>Prevents agents from overwhelming resources or budgets</td></tr>
+          <tr><td>Data Provenance</td><td>Audit Trail</td><td>Every agent action is recorded and replayable</td></tr>
+          <tr><td>Controller Service</td><td>Shared Resource</td><td>LLM clients, vector DBs, tool registries</td></tr>
+          <tr><td>Parameter Context</td><td>Agent Config</td><td>System prompts, model selection, temperature</td></tr>
+          <tr><td>FlowSync</td><td>Agent Blueprints</td><td>Versioned agent definitions with dev &rarr; prod promotion</td></tr>
+          <tr><td>Clustering</td><td>Horizontal Scaling</td><td>Distribute agent workloads across nodes</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Processors -->
+  <section class="section" id="processors">
+    <h2 class="section-title">Custom Agent Processors</h2>
+    <p class="section-desc">Seven custom NiFi processors packaged as a NAR bundle (nifi-agentflow-nar) providing AI agent capabilities.</p>
+    <div class="grid-2" id="processor-cards">
+      <!-- Cards are generated by JS below -->
+    </div>
+  </section>
+
+  <!-- Controller Services -->
+  <section class="section" id="services">
+    <h2 class="section-title">Controller Services</h2>
+    <p class="section-desc">Shared, reusable services configured at the NiFi controller level.</p>
+    <div class="grid-2" id="service-cards">
+      <!-- Cards are generated by JS below -->
+    </div>
+  </section>
+
+  <!-- Agentic Loop -->
+  <section class="section" id="agentic-loop">
+    <h2 class="section-title">Agentic Loop</h2>
+    <p class="section-desc">How a single agent (Process Group) processes a task through the LLM &harr; Tool loop.</p>
+    <div class="flow-container" id="flow-animation">
+      <div class="flow-row">
+        <div class="flow-step" data-step="0" style="border-color: var(--router); color: var(--router); background: rgba(59,130,246,0.08);">
+          &#x1F4E5; Task Received
+          <span class="flow-label">FlowFile in</span>
+        </div>
+        <span class="flow-arrow">&rarr;</span>
+        <div class="flow-step" data-step="1" style="border-color: var(--guard); color: var(--guard); background: rgba(239,68,68,0.08);">
+          &#x1F6E1; Input Guardrails
+          <span class="flow-label">Validate + PII scan</span>
+        </div>
+        <span class="flow-arrow">&rarr;</span>
+        <div class="flow-step" data-step="2" style="border-color: var(--memory); color: var(--memory); background: rgba(6,182,212,0.08);">
+          &#x1F9E0; Memory Retrieve
+          <span class="flow-label">Context + knowledge</span>
+        </div>
+      </div>
+      <div class="flow-row">
+        <span class="flow-arrow">&darr;</span>
+      </div>
+      <div class="flow-row">
+        <div class="flow-step" data-step="3" style="border-color: var(--llm); color: var(--llm); background: rgba(124,58,237,0.08);">
+          &#x2728; LLM Inference
+          <span class="flow-label">Prompt + reason</span>
+        </div>
+        <span class="flow-arrow">&rarr;</span>
+        <div class="flow-step" data-step="4" style="border-color: var(--router); color: var(--router); background: rgba(59,130,246,0.08);">
+          &#x1F500; Router
+          <span class="flow-label">Decision point</span>
+        </div>
+        <span class="flow-arrow">&rarr;</span>
+        <div class="flow-step" data-step="5" style="border-color: var(--tool); color: var(--tool); background: rgba(245,158,11,0.08);">
+          &#x1F527; Tool Executor
+          <span class="flow-label">HTTP / MCP / SQL</span>
+        </div>
+        <span class="flow-arrow" style="color: var(--tool);">&circlearrowleft;</span>
+      </div>
+      <div class="flow-row">
+        <span class="flow-arrow">&darr;</span>
+        <span style="font-size: 0.75rem; color: var(--text-dim); margin-left: 0.5rem;">loop until done</span>
+      </div>
+      <div class="flow-row">
+        <div class="flow-step" data-step="6" style="border-color: var(--guard); color: var(--guard); background: rgba(239,68,68,0.08);">
+          &#x1F6E1; Output Guardrails
+          <span class="flow-label">Validate + redact</span>
+        </div>
+        <span class="flow-arrow">&rarr;</span>
+        <div class="flow-step" data-step="7" style="border-color: var(--memory); color: var(--memory); background: rgba(6,182,212,0.08);">
+          &#x1F4BE; Memory Store
+          <span class="flow-label">Save to VectorDB</span>
+        </div>
+        <span class="flow-arrow">&rarr;</span>
+        <div class="flow-step" data-step="8" style="border-color: var(--planner); color: var(--planner); background: rgba(16,185,129,0.08);">
+          &#x1F4E4; Emit Result
+          <span class="flow-label">FlowFile out</span>
+        </div>
+      </div>
+    </div>
+    <p style="text-align: center; margin-top: 1rem; font-size: 0.8rem; color: var(--text-dim);">
+      Animation cycles through the agentic loop steps. The LLM &harr; Tool loop repeats until the task is complete.
+    </p>
+  </section>
+
+  <!-- Multi-Agent Patterns -->
+  <section class="section" id="patterns">
+    <h2 class="section-title">Multi-Agent Collaboration Patterns</h2>
+    <p class="section-desc">AgentFlow supports four primary patterns for multi-agent orchestration, all implemented as NiFi Process Group topologies.</p>
+    <div class="tabs" id="pattern-tabs">
+      <button class="tab-btn active" data-tab="sequential">Sequential Pipeline</button>
+      <button class="tab-btn" data-tab="supervisor">Supervisor / Worker</button>
+      <button class="tab-btn" data-tab="debate">Debate / Consensus</button>
+      <button class="tab-btn" data-tab="mapreduce">MapReduce Fan-out</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-sequential">
+      <div class="pattern-diagram">
+        <div style="display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0.5rem;">
+          <div class="pattern-node" style="border-color: var(--router); color: var(--router); background: rgba(59,130,246,0.08);">Intake Agent</div>
+          <span class="flow-arrow">&rarr;</span>
+          <div class="pattern-node" style="border-color: var(--planner); color: var(--planner); background: rgba(16,185,129,0.08);">Researcher Agent</div>
+          <span class="flow-arrow">&rarr;</span>
+          <div class="pattern-node" style="border-color: var(--llm); color: var(--llm); background: rgba(124,58,237,0.08);">Analyst Agent</div>
+          <span class="flow-arrow">&rarr;</span>
+          <div class="pattern-node" style="border-color: var(--tool); color: var(--tool); background: rgba(245,158,11,0.08);">Writer Agent</div>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 1.5rem;">Tasks flow linearly through a chain of agents. Each agent enriches the FlowFile before passing it to the next. Ideal for workflows with a fixed sequence of stages.</p>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-supervisor">
+      <div class="pattern-diagram">
+        <div style="margin-bottom: 1rem;">
+          <div class="pattern-node" style="border-color: var(--planner); color: var(--planner); background: rgba(16,185,129,0.1); font-size: 0.9rem;">&#x1F451; Supervisor Agent (Planner + Router)</div>
+        </div>
+        <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+          <div>
+            <div style="color: var(--text-dim); font-size: 0.7rem; margin-bottom: 0.25rem;">&darr; subtask &uarr; result</div>
+            <div class="pattern-node" style="border-color: var(--llm); color: var(--llm); background: rgba(124,58,237,0.08);">Worker 1</div>
+          </div>
+          <div>
+            <div style="color: var(--text-dim); font-size: 0.7rem; margin-bottom: 0.25rem;">&darr; subtask &uarr; result</div>
+            <div class="pattern-node" style="border-color: var(--tool); color: var(--tool); background: rgba(245,158,11,0.08);">Worker 2</div>
+          </div>
+          <div>
+            <div style="color: var(--text-dim); font-size: 0.7rem; margin-bottom: 0.25rem;">&darr; subtask &uarr; result</div>
+            <div class="pattern-node" style="border-color: var(--memory); color: var(--memory); background: rgba(6,182,212,0.08);">Worker 3</div>
+          </div>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 1.5rem;">A supervisor decomposes the task and delegates subtasks to specialized workers in parallel. Results are aggregated back to the supervisor. Ideal for tasks with independent sub-problems.</p>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-debate">
+      <div class="pattern-diagram">
+        <div style="display: flex; justify-content: center; gap: 2rem; margin-bottom: 1rem;">
+          <div class="pattern-node" style="border-color: var(--router); color: var(--router); background: rgba(59,130,246,0.08);">Agent A (Pro)</div>
+          <div style="display: flex; flex-direction: column; align-items: center; color: var(--text-dim); font-size: 0.8rem;">
+            <span>&larr; argue &rarr;</span>
+            <span>&larr; rebut &rarr;</span>
+          </div>
+          <div class="pattern-node" style="border-color: var(--guard); color: var(--guard); background: rgba(239,68,68,0.08);">Agent B (Con)</div>
+        </div>
+        <div style="color: var(--text-dim); font-size: 0.8rem; margin-bottom: 0.5rem;">&darr; both perspectives &darr;</div>
+        <div class="pattern-node" style="border-color: var(--planner); color: var(--planner); background: rgba(16,185,129,0.1);">&#x2696; Judge Agent</div>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 1.5rem;">Two agents debate from opposing perspectives. A judge agent synthesizes the arguments into a balanced consensus. Ideal for decisions requiring multi-perspective analysis.</p>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-mapreduce">
+      <div class="pattern-diagram">
+        <div style="margin-bottom: 1rem;">
+          <div class="pattern-node" style="border-color: var(--tool); color: var(--tool); background: rgba(245,158,11,0.1);">&#x2702; Splitter</div>
+        </div>
+        <div style="display: flex; justify-content: center; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap;">
+          <div class="pattern-node" style="border-color: var(--llm); color: var(--llm); background: rgba(124,58,237,0.06); font-size: 0.75rem;">Agent (chunk 1)</div>
+          <div class="pattern-node" style="border-color: var(--router); color: var(--router); background: rgba(59,130,246,0.06); font-size: 0.75rem;">Agent (chunk 2)</div>
+          <div class="pattern-node" style="border-color: var(--memory); color: var(--memory); background: rgba(6,182,212,0.06); font-size: 0.75rem;">Agent (chunk 3)</div>
+          <div class="pattern-node" style="border-color: var(--hitl); color: var(--hitl); background: rgba(236,72,153,0.06); font-size: 0.75rem;">Agent (chunk N)</div>
+        </div>
+        <div class="pattern-node" style="border-color: var(--planner); color: var(--planner); background: rgba(16,185,129,0.1);">&#x1F4E6; Aggregator</div>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 1.5rem;">A splitter breaks the task into N independent chunks, each processed by a separate agent in parallel. An aggregator merges all results. Ideal for large-scale data processing.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FlowFile Structure -->
+  <section class="section" id="flowfile">
+    <h2 class="section-title">FlowFile Structure</h2>
+    <p class="section-desc">The FlowFile is the unit of work flowing between agents. It carries the full task context as attributes (metadata) and content (JSON payload).</p>
+    <div class="grid-2">
+      <div class="flowfile-box">
+        <div class="ff-section">ATTRIBUTES (metadata):</div>
+        <div><span class="ff-key">task.id</span> = <span class="ff-val">"uuid-1234"</span></div>
+        <div><span class="ff-key">task.type</span> = <span class="ff-val">"research_query"</span></div>
+        <div><span class="ff-key">task.priority</span> = <span class="ff-val">"high"</span></div>
+        <div><span class="ff-key">task.origin_agent</span> = <span class="ff-val">"supervisor"</span></div>
+        <div><span class="ff-key">task.target_agent</span> = <span class="ff-val">"researcher"</span></div>
+        <div><span class="ff-key">task.iteration</span> = <span class="ff-val">3</span></div>
+        <div><span class="ff-key">task.max_iter</span> = <span class="ff-val">10</span></div>
+        <div><span class="ff-key">task.token_budget</span> = <span class="ff-val">50000</span></div>
+        <div><span class="ff-key">task.tokens_used</span> = <span class="ff-val">12340</span></div>
+        <div><span class="ff-key">task.status</span> = <span class="ff-val">"in_progress"</span></div>
+        <div><span class="ff-key">llm.model.id</span> = <span class="ff-val">"claude-sonnet-4-6"</span></div>
+        <div><span class="ff-key">llm.tokens.input</span> = <span class="ff-val">2105</span></div>
+        <div><span class="ff-key">llm.tokens.output</span> = <span class="ff-val">1136</span></div>
+      </div>
+      <div class="flowfile-box">
+        <div class="ff-section">CONTENT (JSON payload):</div>
+        <div>{</div>
+        <div>&nbsp;&nbsp;<span class="ff-key">"goal"</span>: <span class="ff-val">"Research recent trends..."</span>,</div>
+        <div>&nbsp;&nbsp;<span class="ff-key">"conversation_history"</span>: [</div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;{<span class="ff-key">"role"</span>: <span class="ff-val">"user"</span>, ...},</div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;{<span class="ff-key">"role"</span>: <span class="ff-val">"assistant"</span>, ...},</div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;{<span class="ff-key">"role"</span>: <span class="ff-val">"tool"</span>, ...}</div>
+        <div>&nbsp;&nbsp;],</div>
+        <div>&nbsp;&nbsp;<span class="ff-key">"plan"</span>: {<span class="ff-key">"steps"</span>: [...], <span class="ff-key">"current_step"</span>: 2},</div>
+        <div>&nbsp;&nbsp;<span class="ff-key">"tool_results"</span>: [...],</div>
+        <div>&nbsp;&nbsp;<span class="ff-key">"memory_context"</span>: [...],</div>
+        <div>&nbsp;&nbsp;<span class="ff-key">"final_output"</span>: <span class="ff-val">null</span></div>
+        <div>}</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tech Stack -->
+  <section class="section" id="tech-stack">
+    <h2 class="section-title">Technology Stack</h2>
+    <div class="tech-grid">
+      <div class="tech-item"><div class="tech-layer">Runtime</div><div class="tech-name">Apache NiFi 2.x (Java 21+)</div></div>
+      <div class="tech-item"><div class="tech-layer">Custom Processors</div><div class="tech-name">Java NAR Bundle</div></div>
+      <div class="tech-item"><div class="tech-layer">3D Frontend</div><div class="tech-name">React Three Fiber + Zustand</div></div>
+      <div class="tech-item"><div class="tech-layer">Styling</div><div class="tech-name">Tailwind CSS + Framer Motion</div></div>
+      <div class="tech-item"><div class="tech-layer">Build</div><div class="tech-name">Vite + TypeScript</div></div>
+      <div class="tech-item"><div class="tech-layer">LLM Providers</div><div class="tech-name">Anthropic, OpenAI, Bedrock, Ollama</div></div>
+      <div class="tech-item"><div class="tech-layer">Vector Database</div><div class="tech-name">Pinecone / ChromaDB / pgvector</div></div>
+      <div class="tech-item"><div class="tech-layer">Tool Sandboxing</div><div class="tech-name">Docker / gVisor</div></div>
+      <div class="tech-item"><div class="tech-layer">State</div><div class="tech-name">Redis / NiFi State Provider</div></div>
+      <div class="tech-item"><div class="tech-layer">Messaging</div><div class="tech-name">Apache Kafka</div></div>
+      <div class="tech-item"><div class="tech-layer">Secrets</div><div class="tech-name">HashiCorp Vault</div></div>
+      <div class="tech-item"><div class="tech-layer">Monitoring</div><div class="tech-name">Prometheus + Grafana</div></div>
+      <div class="tech-item"><div class="tech-layer">Coordination</div><div class="tech-name">Apache ZooKeeper</div></div>
+      <div class="tech-item"><div class="tech-layer">Flow Versioning</div><div class="tech-name">FlowSync + Git</div></div>
+      <div class="tech-item"><div class="tech-layer">Observability</div><div class="tech-name">NiFi Provenance + Agent Traces</div></div>
+    </div>
+  </section>
+
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  AgentFlow v0.1 &mdash; Architecture Reference &mdash;
+  <a href="https://github.com/bjkolly/agentflow-nifi">github.com/bjkolly/agentflow-nifi</a>
+</div>
+
+<script>
+// ============================================================
+// Processor Data
+// ============================================================
+const processors = [
+  {
+    name: 'LLMInference',
+    color: '#7c3aed',
+    badge: 'Core',
+    desc: 'Sends prompts to LLM providers and processes responses. Supports streaming, tool calls, and multiple response formats.',
+    properties: [
+      ['LLM Client Service', 'Controller Service reference'],
+      ['Model ID', 'claude-sonnet-4-6, gpt-4, etc.'],
+      ['System Prompt', 'EL-enabled text'],
+      ['Temperature', '0.0 - 2.0'],
+      ['Max Tokens', 'Integer'],
+      ['Response Format', 'text / json'],
+      ['Tool Definitions', 'JSON array'],
+      ['Streaming Enabled', 'Boolean'],
+    ],
+    relationships: [
+      { name: 'success', desc: 'next processor' },
+      { name: 'tool_call', desc: 'ToolExecutor' },
+      { name: 'failure', desc: 'error handling' },
+      { name: 'rate_limit', desc: 'retry/backoff' },
+    ],
+    attributes: ['llm.response.text', 'llm.tool_calls', 'llm.tokens.input', 'llm.tokens.output', 'llm.model.id', 'llm.finish_reason'],
+  },
+  {
+    name: 'ToolExecutor',
+    color: '#f59e0b',
+    badge: 'Core',
+    desc: 'Executes tool calls returned by the LLM. Supports HTTP APIs, MCP protocol, sandboxed code execution, and SQL queries.',
+    properties: [
+      ['Tool Registry Service', 'Controller Service reference'],
+      ['Execution Timeout', 'Duration (e.g., 30s)'],
+      ['Sandbox Mode', 'Boolean'],
+      ['Max Concurrent Calls', 'Integer'],
+      ['Allowed Tool Names', 'Comma-separated list'],
+    ],
+    relationships: [
+      { name: 'success', desc: 'back to LLM' },
+      { name: 'failure', desc: 'error handling' },
+      { name: 'requires_human', desc: 'HumanApproval' },
+      { name: 'unauthorized', desc: 'guardrails' },
+    ],
+    attributes: ['tool.result', 'tool.name', 'tool.execution_time_ms'],
+  },
+  {
+    name: 'MemoryManager',
+    color: '#06b6d4',
+    badge: 'Memory',
+    desc: 'Reads from and writes to vector databases for agent memory. Supports semantic search, embedding generation, and scoped memory.',
+    properties: [
+      ['VectorDB Service', 'Controller Service reference'],
+      ['Operation', 'read / write'],
+      ['Collection Name', 'String'],
+      ['Embedding Model', 'text-embedding-3-large'],
+      ['Top-K Results', 'Integer'],
+      ['Similarity Threshold', 'Float (0-1)'],
+      ['Memory Scope', 'agent / global'],
+    ],
+    relationships: [
+      { name: 'success', desc: 'enriched FlowFile' },
+      { name: 'failure', desc: 'error handling' },
+    ],
+    attributes: ['memory.results', 'memory.result_count', 'memory.operation_type'],
+  },
+  {
+    name: 'TaskPlanner',
+    color: '#10b981',
+    badge: 'Planning',
+    desc: 'Decomposes complex tasks into subtasks using configurable planning strategies. Supports ReAct, Plan-and-Execute, and Tree-of-Thought.',
+    properties: [
+      ['LLM Client Service', 'Controller Service reference'],
+      ['Planning Strategy', 'ReAct / Plan-and-Execute / Tree-of-Thought / Custom'],
+      ['Max Planning Depth', 'Integer'],
+      ['Available Agent List', 'JSON array'],
+      ['Goal Decomposition', 'Boolean'],
+    ],
+    relationships: [
+      { name: 'subtask', desc: 'route to sub-agent' },
+      { name: 'complete', desc: 'aggregation' },
+      { name: 'failure', desc: 're-plan / escalate' },
+    ],
+    attributes: ['plan.steps', 'plan.current_step', 'plan.assigned_agent'],
+  },
+  {
+    name: 'AgentRouter',
+    color: '#3b82f6',
+    badge: 'Routing',
+    desc: 'Routes FlowFiles to the appropriate agent based on task content. Supports LLM-based, rule-based, skill-match, and round-robin strategies.',
+    properties: [
+      ['Routing Strategy', 'LLM-based / Rule-based / Skill-match / Round-robin'],
+      ['Agent Registry', 'JSON configuration'],
+      ['Fallback Agent', 'Process Group reference'],
+      ['Max Delegation Depth', 'Integer'],
+    ],
+    relationships: [
+      { name: 'agent.researcher', desc: 'dynamic' },
+      { name: 'agent.coder', desc: 'dynamic' },
+      { name: 'agent.analyst', desc: 'dynamic' },
+      { name: 'agent.<name>', desc: 'auto-created' },
+    ],
+    attributes: ['router.selected_agent', 'router.confidence_score'],
+  },
+  {
+    name: 'HumanInTheLoop',
+    color: '#ec4899',
+    badge: 'Safety',
+    desc: 'Pauses flow execution until a human approves, rejects, or modifies the task. Supports UI, Slack, and API approval channels.',
+    properties: [
+      ['Approval Channel', 'UI / Slack / API'],
+      ['Timeout', 'Duration'],
+      ['Auto-approve Rules', 'JSON config'],
+      ['Notification Service', 'Controller Service reference'],
+      ['Escalation Policy', 'JSON config'],
+    ],
+    relationships: [
+      { name: 'approved', desc: 'continue flow' },
+      { name: 'rejected', desc: 'alternative path' },
+      { name: 'timed_out', desc: 'escalation' },
+    ],
+    attributes: ['hitl.decision', 'hitl.reviewer', 'hitl.response_time_ms'],
+  },
+  {
+    name: 'GuardrailsEnforcer',
+    color: '#ef4444',
+    badge: 'Safety',
+    desc: 'Enforces safety policies on input and output. Checks for PII, content policy violations, budget limits, and iteration caps.',
+    properties: [
+      ['Guardrails Service', 'Controller Service reference'],
+      ['Check Input/Output', 'both / input / output'],
+      ['PII Detection', 'Boolean'],
+      ['Content Policy Rules', 'JSON config'],
+      ['Cost Budget Per Task', 'Float ($)'],
+      ['Token Budget Per Task', 'Integer'],
+      ['Max Loop Iterations', 'Integer'],
+    ],
+    relationships: [
+      { name: 'pass', desc: 'continue' },
+      { name: 'violation', desc: 'quarantine/log' },
+      { name: 'budget_exceeded', desc: 'halt' },
+    ],
+    attributes: ['guardrails.status', 'guardrails.violations', 'guardrails.cost_remaining'],
+  },
+];
+
+// ============================================================
+// Controller Service Data
+// ============================================================
+const services = [
+  {
+    name: 'LLMClientService',
+    color: '#7c3aed',
+    desc: 'Multi-provider LLM client with connection pooling, retry policies, and rate limiting.',
+    properties: [
+      ['Provider', 'Anthropic / OpenAI / Bedrock / Ollama'],
+      ['API Key', '${vault:llm-api-key}'],
+      ['Base URL', 'Provider-specific endpoint'],
+      ['Connection Pool', '20 connections'],
+      ['Retry Policy', 'Exponential backoff'],
+      ['Rate Limit', '1000 req/min'],
+      ['Streaming', 'Supported'],
+    ],
+  },
+  {
+    name: 'VectorDBService',
+    color: '#06b6d4',
+    desc: 'Vector database client for agent memory storage and semantic retrieval.',
+    properties: [
+      ['Provider', 'Pinecone / ChromaDB / pgvector / Weaviate'],
+      ['Connection String', '${vault:vectordb-conn}'],
+      ['Default Collection', '"agent_memory"'],
+      ['Embedding Model', 'text-embedding-3-large'],
+      ['Similarity Metric', 'Cosine / Dot-product'],
+    ],
+  },
+  {
+    name: 'ToolRegistryService',
+    color: '#f59e0b',
+    desc: 'Registry of available tools that agents can invoke. Each tool is sandboxed and rate-limited.',
+    properties: [
+      ['web_search', 'HTTP API'],
+      ['code_executor', 'Sandboxed container (Docker/gVisor)'],
+      ['sql_query', 'JDBC, read-only'],
+      ['file_reader', 'S3/GCS access'],
+      ['mcp_client', 'Model Context Protocol'],
+      ['Execution Timeout', '30s per call'],
+    ],
+  },
+  {
+    name: 'GuardrailsService',
+    color: '#ef4444',
+    desc: 'Centralized safety and governance policies for all agents.',
+    properties: [
+      ['Content Policies', 'JSON rule definitions'],
+      ['PII Detection', 'Enabled'],
+      ['Cost Ceiling', '$5.00 per task'],
+      ['Max Iterations', '25 per agent'],
+      ['Prohibited Actions', 'delete_prod, send_money, ...'],
+      ['Audit Logging', 'Enabled'],
+    ],
+  },
+];
+
+// ============================================================
+// Render Processor Cards
+// ============================================================
+function renderCards(items, containerId, isService) {
+  const container = document.getElementById(containerId);
+  items.forEach((item, idx) => {
+    const card = document.createElement('div');
+    card.className = 'glass-card';
+    card.style.borderTop = `3px solid ${item.color}`;
+
+    let bodyHTML = `<p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.75rem;">${item.desc}</p>`;
+    bodyHTML += `<h4>Properties</h4><div class="prop-grid">`;
+    item.properties.forEach(([key, val]) => {
+      bodyHTML += `<div class="prop"><span class="prop-key">${key}</span><span class="prop-val">${val}</span></div>`;
+    });
+    bodyHTML += `</div>`;
+
+    if (!isService && item.relationships) {
+      bodyHTML += `<h4>Relationships</h4><div class="relationship-list">`;
+      item.relationships.forEach(rel => {
+        bodyHTML += `<span class="rel-badge" style="border-color: ${item.color}; color: ${item.color}; background: ${item.color}11;">${rel.name} <span style="color: var(--text-dim); font-size: 0.65rem;">&rarr; ${rel.desc}</span></span>`;
+      });
+      bodyHTML += `</div>`;
+    }
+
+    if (!isService && item.attributes) {
+      bodyHTML += `<h4>Output Attributes</h4><div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">`;
+      item.attributes.forEach(attr => {
+        bodyHTML += `<code style="font-size: 0.75rem; background: rgba(255,255,255,0.04); padding: 0.15rem 0.5rem; border-radius: 4px; color: var(--memory);">${attr}</code>`;
+      });
+      bodyHTML += `</div>`;
+    }
+
+    card.innerHTML = `
+      <div class="card-header" onclick="toggleCard(this)">
+        <div class="color-dot" style="background: ${item.color};"></div>
+        <h3>${item.name}</h3>
+        ${item.badge ? `<span class="badge">${item.badge}</span>` : ''}
+        <span class="chevron">&#x25BC;</span>
+      </div>
+      <div class="card-body">${bodyHTML}</div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function toggleCard(header) {
+  const chevron = header.querySelector('.chevron');
+  const body = header.nextElementSibling;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open');
+  chevron.classList.toggle('open');
+  header.closest('.glass-card').classList.toggle('expanded');
+}
+
+renderCards(processors, 'processor-cards', false);
+renderCards(services, 'service-cards', true);
+
+// ============================================================
+// Tabs
+// ============================================================
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tabId = btn.dataset.tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + tabId).classList.add('active');
+  });
+});
+
+// ============================================================
+// Flow Animation
+// ============================================================
+let currentStep = -1;
+const steps = document.querySelectorAll('.flow-step[data-step]');
+function animateFlow() {
+  steps.forEach(s => s.classList.remove('active'));
+  currentStep = (currentStep + 1) % steps.length;
+  steps[currentStep].classList.add('active');
+}
+setInterval(animateFlow, 1200);
+animateFlow();
+</script>
+</body>
+</html>

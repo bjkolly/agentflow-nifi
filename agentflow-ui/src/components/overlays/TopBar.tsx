@@ -7,6 +7,7 @@ import { formatTokens, formatCost } from '../../utils/format';
 export default function TopBar() {
   const nodes = useFlowStore((s) => s.nodes);
   const demoMode = useFlowStore((s) => s.demoMode);
+  const resetPositions = useFlowStore((s) => s.resetPositions);
   const baseUrl = useNifiStore((s) => s.baseUrl);
   const isConnected = useNifiStore((s) => s.isConnected);
   const totalTokensIn = useProvenanceStore((s) => s.totalTokensIn);
@@ -20,13 +21,14 @@ export default function TopBar() {
   return (
     <GlassmorphicPanel className="absolute top-0 left-0 right-0 h-12 z-50 flex items-center px-4 rounded-none border-t-0 border-x-0">
       {/* Left: Brand */}
-      <div className="flex items-center gap-2">
-        <span className="w-2 h-2 rounded-full bg-[#7c3aed]" />
+      <div className="flex items-center gap-2.5">
+        <span className="w-2.5 h-2.5 rounded-full bg-[#7c3aed] shadow-[0_0_8px_rgba(124,58,237,0.6)]" />
         <span className="text-white font-bold text-sm tracking-wide">AgentFlow</span>
+        <span className="text-[9px] text-gray-600 font-mono">v0.1</span>
       </div>
 
-      {/* Center: Connection status */}
-      <div className="flex-1 flex justify-center items-center gap-2 text-xs text-gray-400">
+      {/* Center: Connection status + reset */}
+      <div className="flex-1 flex justify-center items-center gap-3 text-xs text-gray-400">
         <span className="font-mono">{demoMode ? 'Demo Mode' : baseUrl}</span>
         {!demoMode && (
           <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
@@ -36,6 +38,13 @@ export default function TopBar() {
             DEMO
           </span>
         )}
+        <button
+          onClick={resetPositions}
+          className="px-2 py-1 rounded text-[10px] font-medium bg-white/[0.06] hover:bg-white/[0.12] text-gray-400 hover:text-white border border-white/[0.08] transition-all duration-150 active:scale-95"
+          title="Reset node positions to defaults"
+        >
+          Reset Layout
+        </button>
       </div>
 
       {/* Right: Stats */}

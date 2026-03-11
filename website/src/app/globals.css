@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-inter), 'Inter', system-ui, -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --color-bg: #0a0a0f;
+  --color-bg2: #06060a;
+  --color-surface: #0d1117;
+  --color-surface2: #111827;
+  --color-surface3: #1a1a2e;
+  --color-border: #1f2937;
+  --color-border-light: #374151;
+  --color-text-primary: #e5e7eb;
+  --color-text-muted: #9ca3af;
+  --color-text-dim: #6b7280;
+  --color-llm: #7c3aed;
+  --color-tool: #f59e0b;
+  --color-memory: #06b6d4;
+  --color-planner: #10b981;
+  --color-router: #3b82f6;
+  --color-hitl: #ec4899;
+  --color-guard: #ef4444;
+  --color-accent: #3b82f6;
+  --color-success: #22c55e;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
+  line-height: 1.7;
+}
+
+.glass {
+  background: rgba(13, 17, 23, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1rem;
+}

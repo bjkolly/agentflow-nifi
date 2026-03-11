@@ -23,7 +23,7 @@ export default function FlowFileParticle({ curve, color, speed = 0.3, offset = 0
 
   return (
     <mesh ref={meshRef}>
-      <sphereGeometry args={[0.06, 8, 8]} />
+      <sphereGeometry args={[0.12, 12, 12]} />
       <meshBasicMaterial
         color={color}
         transparent

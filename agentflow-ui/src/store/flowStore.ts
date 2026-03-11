@@ -11,6 +11,7 @@ type FlowState = {
   rootGroupId: string | null;
   currentGroupId: string | null;
   demoMode: boolean;
+  defaultPositions: Record<string, [number, number, number]>;
 };
 
 type FlowActions = {
@@ -20,16 +21,17 @@ type FlowActions = {
   navigateToGroup: (id: string) => void;
   navigateUp: () => void;
   initDemoData: () => void;
+  resetPositions: () => void;
 };
 
 function createDemoData(): { nodes: Record<string, FlowNode>; connections: Record<string, FlowConnection> } {
   const processors = [
-    { id: 'demo-1', name: 'Plan Task', processorType: 'com.agentflow.nifi.processors.TaskPlannerProcessor', x: 0, y: 0 },
-    { id: 'demo-2', name: 'Route Agent', processorType: 'com.agentflow.nifi.processors.AgentRouterProcessor', x: 5, y: 0 },
-    { id: 'demo-3', name: 'LLM Inference', processorType: 'com.agentflow.nifi.processors.LLMInferenceProcessor', x: 10, y: -3 },
-    { id: 'demo-4', name: 'Execute Tool', processorType: 'com.agentflow.nifi.processors.ToolExecutorProcessor', x: 10, y: 3 },
-    { id: 'demo-5', name: 'Manage Memory', processorType: 'com.agentflow.nifi.processors.MemoryManagerProcessor', x: 15, y: 0 },
-    { id: 'demo-6', name: 'Enforce Guardrails', processorType: 'com.agentflow.nifi.processors.GuardrailsEnforcerProcessor', x: 20, y: 0 },
+    { id: 'demo-1', name: 'Plan Task', processorType: 'com.agentflow.nifi.processors.TaskPlannerProcessor', x: -5, y: 0 },
+    { id: 'demo-2', name: 'Route Agent', processorType: 'com.agentflow.nifi.processors.AgentRouterProcessor', x: 1, y: 0 },
+    { id: 'demo-3', name: 'LLM Inference', processorType: 'com.agentflow.nifi.processors.LLMInferenceProcessor', x: 7, y: -5 },
+    { id: 'demo-4', name: 'Execute Tool', processorType: 'com.agentflow.nifi.processors.ToolExecutorProcessor', x: 7, y: 5 },
+    { id: 'demo-5', name: 'Manage Memory', processorType: 'com.agentflow.nifi.processors.MemoryManagerProcessor', x: 13, y: 0 },
+    { id: 'demo-6', name: 'Enforce Guardrails', processorType: 'com.agentflow.nifi.processors.GuardrailsEnforcerProcessor', x: 19, y: 0 },
   ];
 
   const nodes: Record<string, FlowNode> = {};
@@ -40,7 +42,7 @@ function createDemoData(): { nodes: Record<string, FlowNode>; connections: Recor
       type: 'processor',
       processorType: p.processorType,
       state: 'RUNNING',
-      position: [p.x, 0.5, p.y],
+      position: [p.x, 1.2, p.y],
       parentGroupId: 'root',
       color: getProcessorColor(p.processorType),
       stats: {
@@ -59,6 +61,7 @@ function createDemoData(): { nodes: Record<string, FlowNode>; connections: Recor
     { id: 'conn-3', sourceId: 'demo-2', targetId: 'demo-4', relationship: 'tool_call', queued: 2 },
     { id: 'conn-4', sourceId: 'demo-3', targetId: 'demo-5', relationship: 'success', queued: 0 },
     { id: 'conn-5', sourceId: 'demo-4', targetId: 'demo-5', relationship: 'success', queued: 1 },
+    { id: 'conn-6', sourceId: 'demo-5', targetId: 'demo-6', relationship: 'success', queued: 2 },
   ];
 
   const connections: Record<string, FlowConnection> = {};
@@ -83,16 +86,36 @@ export const useFlowStore = create<FlowState & FlowActions>((set, get) => ({
   rootGroupId: null,
   currentGroupId: null,
   demoMode: true,
+  defaultPositions: {},
 
   initDemoData: () => {
     const { nodes, connections } = createDemoData();
+
+    // Save default positions for reset
+    const defaults: Record<string, [number, number, number]> = {};
+    for (const [id, node] of Object.entries(nodes)) {
+      defaults[id] = [...node.position] as [number, number, number];
+    }
+
     set({
       nodes,
       connections,
       groups: {},
       rootGroupId: 'root',
       currentGroupId: 'root',
+      defaultPositions: defaults,
     });
+  },
+
+  resetPositions: () => {
+    const { nodes, defaultPositions } = get();
+    const updated = { ...nodes };
+    for (const [id, pos] of Object.entries(defaultPositions)) {
+      if (updated[id]) {
+        updated[id] = { ...updated[id], position: [...pos] as [number, number, number] };
+      }
+    }
+    set({ nodes: updated });
   },
 
   setFlowData: (entity: ProcessGroupFlowEntity) => {
@@ -120,6 +143,12 @@ export const useFlowStore = create<FlowState & FlowActions>((set, get) => ({
           activeThreads: snap.activeThreadCount,
         },
       };
+    }
+
+    // Save default positions
+    const defaults: Record<string, [number, number, number]> = {};
+    for (const [id, node] of Object.entries(nodes)) {
+      defaults[id] = [...node.position] as [number, number, number];
     }
 
     const connections: Record<string, FlowConnection> = {};
@@ -159,6 +188,7 @@ export const useFlowStore = create<FlowState & FlowActions>((set, get) => ({
       groups,
       rootGroupId: get().rootGroupId ?? groupId,
       currentGroupId: get().currentGroupId ?? groupId,
+      defaultPositions: defaults,
     });
   },
 

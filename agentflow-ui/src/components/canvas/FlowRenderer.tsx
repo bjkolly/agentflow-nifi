@@ -10,11 +10,12 @@ export default function FlowRenderer() {
 
   return (
     <group>
-      {Object.values(nodes).map((node) => (
-        <ProcessorNode3D key={node.id} node={node} />
-      ))}
+      {/* Connections render first so they appear behind node cards */}
       {Object.values(connections).map((conn) => (
         <Connection3D key={conn.id} connection={conn} />
+      ))}
+      {Object.values(nodes).map((node) => (
+        <ProcessorNode3D key={node.id} node={node} />
       ))}
       {Object.values(groups)
         .filter((g) => g.isExpanded)

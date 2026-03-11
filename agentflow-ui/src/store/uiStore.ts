@@ -7,6 +7,7 @@ type UiState = {
   provenancePanelOpen: boolean;
   contextMenu: ContextMenuState;
   isDragging: boolean;
+  isDraggingNode: boolean;
 };
 
 type UiActions = {
@@ -15,6 +16,7 @@ type UiActions = {
   toggleProvenancePanel: () => void;
   showContextMenu: (x: number, y: number, nodeId: string) => void;
   hideContextMenu: () => void;
+  setIsDraggingNode: (dragging: boolean) => void;
 };
 
 export const useUiStore = create<UiState & UiActions>((set) => ({
@@ -23,6 +25,7 @@ export const useUiStore = create<UiState & UiActions>((set) => ({
   provenancePanelOpen: true,
   contextMenu: { visible: false, x: 0, y: 0, targetNodeId: null },
   isDragging: false,
+  isDraggingNode: false,
 
   selectNode: (id: string | null) => {
     set({ selectedNodeId: id });
@@ -42,5 +45,9 @@ export const useUiStore = create<UiState & UiActions>((set) => ({
 
   hideContextMenu: () => {
     set({ contextMenu: { visible: false, x: 0, y: 0, targetNodeId: null } });
+  },
+
+  setIsDraggingNode: (dragging: boolean) => {
+    set({ isDraggingNode: dragging });
   },
 }));

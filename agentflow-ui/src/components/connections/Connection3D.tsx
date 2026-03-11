@@ -23,12 +23,12 @@ export default function Connection3D({ connection }: Connection3DProps) {
     const end = new THREE.Vector3(...targetNode.position);
     const mid = new THREE.Vector3(
       (start.x + end.x) / 2,
-      Math.max(start.y, end.y) + 1.5,
+      Math.min(start.y, end.y) - 0.6,
       (start.z + end.z) / 2,
     );
 
     const c = new THREE.QuadraticBezierCurve3(start, mid, end);
-    const geo = new THREE.TubeGeometry(c, 32, 0.025, 8, false);
+    const geo = new THREE.TubeGeometry(c, 48, 0.05, 8, false);
     const mp: [number, number, number] = [mid.x, mid.y, mid.z];
 
     return { curve: c, midpoint: mp, tubeGeometry: geo };
@@ -36,21 +36,27 @@ export default function Connection3D({ connection }: Connection3DProps) {
 
   if (!curve || !tubeGeometry || !midpoint || !sourceNode || !targetNode) return null;
 
-  const particleCount = Math.min(connection.queuedCount, 3);
+  const particleCount = Math.min(connection.queuedCount, 5);
   const targetPos = new THREE.Vector3(...targetNode.position);
   const dirToTarget = new THREE.Vector3(...sourceNode.position)
     .sub(targetPos)
     .normalize();
-  const arrowPos = targetPos.clone().add(dirToTarget.multiplyScalar(0.3));
+  const arrowPos = targetPos.clone().add(dirToTarget.multiplyScalar(0.5));
 
   return (
     <group>
       {/* Connection tube */}
       <mesh geometry={tubeGeometry}>
-        <meshBasicMaterial color={color} transparent opacity={0.6} />
+        <meshStandardMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={0.3}
+          transparent
+          opacity={0.7}
+        />
       </mesh>
 
-      {/* Arrowhead cone */}
+      {/* Arrowhead cone — bigger */}
       <mesh
         position={[arrowPos.x, arrowPos.y, arrowPos.z]}
         rotation={[
@@ -62,8 +68,14 @@ export default function Connection3D({ connection }: Connection3DProps) {
           0,
         ]}
       >
-        <coneGeometry args={[0.08, 0.2, 6]} />
-        <meshBasicMaterial color={color} transparent opacity={0.8} />
+        <coneGeometry args={[0.15, 0.35, 8]} />
+        <meshStandardMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={0.5}
+          transparent
+          opacity={0.9}
+        />
       </mesh>
 
       {/* Flow file particles */}
@@ -73,7 +85,7 @@ export default function Connection3D({ connection }: Connection3DProps) {
             key={i}
             curve={curve}
             color={color}
-            speed={0.2 + i * 0.05}
+            speed={0.15 + i * 0.04}
             offset={i / particleCount}
           />
         ))}

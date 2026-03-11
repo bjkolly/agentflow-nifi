@@ -17,11 +17,11 @@ export default function ProvenancePanel() {
     <AnimatePresence>
       {provenancePanelOpen && (
         <motion.div
-          initial={{ x: 320, opacity: 0 }}
+          initial={{ x: 280, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
-          exit={{ x: 320, opacity: 0 }}
+          exit={{ x: 280, opacity: 0 }}
           transition={{ duration: 0.25, ease: 'easeInOut' }}
-          className="absolute top-12 right-0 bottom-0 w-80 z-40"
+          className="absolute top-12 right-0 bottom-0 w-72 z-40"
         >
           <GlassmorphicPanel className="h-full rounded-none border-r-0 border-b-0 flex flex-col overflow-hidden">
             {/* Header */}

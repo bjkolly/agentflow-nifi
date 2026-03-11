@@ -25,11 +25,11 @@ export default function Sidebar() {
     <AnimatePresence>
       {sidebarOpen && (
         <motion.div
-          initial={{ x: -260, opacity: 0 }}
+          initial={{ x: -210, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
-          exit={{ x: -260, opacity: 0 }}
+          exit={{ x: -210, opacity: 0 }}
           transition={{ duration: 0.25, ease: 'easeInOut' }}
-          className="absolute top-12 left-0 bottom-0 w-64 z-40"
+          className="absolute top-12 left-0 bottom-0 w-52 z-40"
         >
           <GlassmorphicPanel className="h-full rounded-none border-l-0 border-b-0 p-3 flex flex-col overflow-hidden">
             {/* Processors section */}

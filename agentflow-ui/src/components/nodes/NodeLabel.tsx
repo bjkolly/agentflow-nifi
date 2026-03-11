@@ -15,7 +15,7 @@ export default function NodeLabel({ text, position, fontSize = 0.18, color = '#f
       color={color}
       anchorX="center"
       anchorY="middle"
-      maxWidth={2.8}
+      maxWidth={3.2}
     >
       {text}
     </Text>

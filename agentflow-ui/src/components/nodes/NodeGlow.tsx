@@ -24,8 +24,8 @@ export default function NodeGlow({ color, active }: NodeGlowProps) {
   });
 
   return (
-    <mesh ref={meshRef} rotation={[Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
-      <torusGeometry args={[1.8, 0.03, 8, 64]} />
+    <mesh ref={meshRef} rotation={[Math.PI / 2, 0, 0]} position={[0, -0.1, 0]}>
+      <torusGeometry args={[2.8, 0.05, 8, 64]} />
       <meshBasicMaterial
         ref={materialRef}
         color={color}

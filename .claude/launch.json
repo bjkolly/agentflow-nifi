@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "agentflow-ui",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "agentflow-ui",
+      "port": 5173
+    },
+    {
+      "name": "foundatation-website",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "-p", "3000"],
+      "cwd": "website",
+      "port": 3000
+    }
+  ]
+}

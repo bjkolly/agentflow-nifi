@@ -20,7 +20,7 @@
 | Data Provenance        | Full audit trail of every agent action       |
 | Controller Service     | Shared resources (LLM clients, vector DBs)  |
 | Parameter Context      | Agent configuration (prompts, model, temp)   |
-| NiFi Registry          | Versioned agent blueprints                   |
+| FlowSync          | Versioned agent blueprints                   |
 | Clustering             | Horizontal scaling of agent workloads        |
 | Bulletin Board         | Real-time agent error/status reporting       |
 
@@ -28,74 +28,98 @@
 
 ## High-Level Architecture
 
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                         INTERFACE LAYER                                  │
-│                                                                          │
-│  ┌──────────────┐   ┌───────────────────┐   ┌────────────────────────┐  │
-│  │  NiFi UI      │   │  Agent Studio UI   │   │  API Gateway           │  │
-│  │  (Extended)   │   │  (Visual Agent     │   │  (REST / WebSocket /   │  │
-│  │              │   │   Designer)        │   │   GraphQL)             │  │
-│  └──────────────┘   └───────────────────┘   └────────────────────────┘  │
-├──────────────────────────────────────────────────────────────────────────┤
-│                    AGENT ORCHESTRATION LAYER                             │
-│                       (Apache NiFi Runtime)                              │
-│                                                                          │
-│  ┌─────────────────────────────────────────────────────────────────────┐ │
-│  │                    SUPERVISOR AGENT (Root Process Group)             │ │
-│  │                                                                     │ │
-│  │   ┌──────────────┐    ┌──────────────┐    ┌──────────────┐        │ │
-│  │   │  AGENT A      │    │  AGENT B      │    │  AGENT C      │        │ │
-│  │   │  (Process     │───▶│  (Process     │───▶│  (Process     │        │ │
-│  │   │   Group)      │    │   Group)      │    │   Group)      │        │ │
-│  │   │              │    │              │    │              │        │ │
-│  │   │ ┌──────────┐ │    │ ┌──────────┐ │    │ ┌──────────┐ │        │ │
-│  │   │ │ Planner  │ │    │ │ LLM Call │ │    │ │ Tool Exec│ │        │ │
-│  │   │ │ Processor│ │    │ │ Processor│ │    │ │ Processor│ │        │ │
-│  │   │ └────┬─────┘ │    │ └────┬─────┘ │    │ └────┬─────┘ │        │ │
-│  │   │ ┌────▼─────┐ │    │ ┌────▼─────┐ │    │ ┌────▼─────┐ │        │ │
-│  │   │ │ LLM Call │ │    │ │ Memory   │ │    │ │ Validator│ │        │ │
-│  │   │ │ Processor│ │    │ │ Processor│ │    │ │ Processor│ │        │ │
-│  │   │ └────┬─────┘ │    │ └────┬─────┘ │    │ └────┬─────┘ │        │ │
-│  │   │ ┌────▼─────┐ │    │ ┌────▼─────┐ │    │ ┌────▼─────┐ │        │ │
-│  │   │ │ Router   │ │    │ │ Tool Exec│ │    │ │ Human    │ │        │ │
-│  │   │ │ Processor│ │    │ │ Processor│ │    │ │ Approval │ │        │ │
-│  │   │ └──────────┘ │    │ └──────────┘ │    │ └──────────┘ │        │ │
-│  │   └──────────────┘    └──────────────┘    └──────────────┘        │ │
-│  │                                                                     │ │
-│  └─────────────────────────────────────────────────────────────────────┘ │
-├──────────────────────────────────────────────────────────────────────────┤
-│                    CONTROLLER SERVICES LAYER                             │
-│                                                                          │
-│  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌─────────────────────┐  │
-│  │ LLM Client │ │ VectorDB   │ │ Tool       │ │ Guardrails          │  │
-│  │ Service    │ │ Service    │ │ Registry   │ │ Service             │  │
-│  │            │ │            │ │ Service    │ │                     │  │
-│  │ -Claude    │ │ -Pinecone  │ │            │ │ -Content filter     │  │
-│  │ -GPT      │ │ -Chroma    │ │ -HTTP APIs │ │ -PII detection      │  │
-│  │ -Llama    │ │ -Weaviate  │ │ -Functions │ │ -Cost limits        │  │
-│  │ -Mistral  │ │ -pgvector  │ │ -MCP       │ │ -Action boundaries  │  │
-│  └────────────┘ └────────────┘ └────────────┘ └─────────────────────┘  │
-├──────────────────────────────────────────────────────────────────────────┤
-│                    OBSERVABILITY LAYER                                    │
-│                                                                          │
-│  ┌────────────────┐  ┌────────────────┐  ┌────────────────────────────┐ │
-│  │ NiFi Provenance │  │ Agent Trace    │  │ Metrics & Dashboards      │ │
-│  │ (Every action   │  │ Viewer         │  │                            │ │
-│  │  is recorded)   │  │ (Step-by-step  │  │ -Token usage per agent    │ │
-│  │                │  │  agent replay)  │  │ -Latency per step         │ │
-│  │                │  │                │  │ -Success/failure rates     │ │
-│  │                │  │                │  │ -Cost tracking             │ │
-│  └────────────────┘  └────────────────┘  └────────────────────────────┘ │
-├──────────────────────────────────────────────────────────────────────────┤
-│                    INFRASTRUCTURE LAYER                                   │
-│                                                                          │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐ │
-│  │ LLM APIs │  │ Vector   │  │ Object   │  │ Message  │  │ Secrets  │ │
-│  │ Providers│  │ Database │  │ Storage  │  │ Queue    │  │ Manager  │ │
-│  │          │  │          │  │ (S3/GCS) │  │ (Kafka)  │  │ (Vault)  │ │
-│  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────┘ │
-└──────────────────────────────────────────────────────────────────────────┘
+> **Interactive diagrams available:** See [`docs/architecture.html`](docs/architecture.html) for an interactive version and [`docs/architecture.svg`](docs/architecture.svg) for a high-resolution SVG.
+
+```mermaid
+graph TD
+    subgraph UI["🖥️ Interface Layer"]
+        A1["AgentFlow 3D UI<br/><small>React Three Fiber + Zustand</small>"]
+        A2["NiFi Canvas UI"]
+        A3["REST API Gateway"]
+        A4["FlowSync<br/><small>Flow Versioning</small>"]
+    end
+
+    subgraph NIFI["⚡ Agent Orchestration Layer — Apache NiFi Runtime"]
+        direction TB
+        SUP["Supervisor Agent<br/><small>Root Process Group</small>"]
+
+        subgraph AGENT_A["Agent A — Research Analyst"]
+            P1["🟣 LLMInference"]
+            P2["🔵 AgentRouter"]
+            P3["🟡 ToolExecutor"]
+            P4["🔴 GuardrailsEnforcer"]
+            P5["🔵 MemoryManager"]
+            P1 --> P2
+            P2 -->|tool_call| P3
+            P3 -->|result| P1
+            P2 -->|done| P4
+            P2 -->|store| P5
+        end
+
+        subgraph AGENT_B["Agent B — Task Planner"]
+            P6["🟢 TaskPlanner"]
+            P7["🟣 LLMInference"]
+            P8["🔵 AgentRouter"]
+            P9["🩷 HumanInTheLoop"]
+            P6 --> P7 --> P8
+            P8 -->|approval| P9
+        end
+
+        subgraph AGENT_C["Agent C — Tool Specialist"]
+            P10["🟡 ToolExecutor"]
+            P11["🟣 LLMInference"]
+            P12["🔴 GuardrailsEnforcer"]
+            P13["🔵 MemoryManager"]
+            P10 --> P11
+            P11 -->|loop| P10
+            P10 --> P12
+            P11 --> P13
+        end
+
+        SUP --> AGENT_A
+        SUP --> AGENT_B
+        SUP --> AGENT_C
+        AGENT_A -->|"FlowFile"| AGENT_B
+        AGENT_B -->|"FlowFile"| AGENT_C
+    end
+
+    subgraph SERVICES["🔧 Controller Services"]
+        S1["LLMClientService<br/><small>Claude · GPT · Llama · Bedrock</small>"]
+        S2["VectorDBService<br/><small>Pinecone · Chroma · pgvector</small>"]
+        S3["ToolRegistryService<br/><small>HTTP · MCP · SQL · Sandbox</small>"]
+        S4["GuardrailsService<br/><small>PII · Cost · Content Policy</small>"]
+    end
+
+    subgraph INFRA["☁️ Infrastructure"]
+        I1["LLM API Providers"]
+        I2["Vector Databases"]
+        I3["Storage & Kafka"]
+        I4["Vault / Secrets"]
+        I5["Prometheus & Grafana"]
+        I6["ZooKeeper"]
+    end
+
+    UI --> NIFI
+    NIFI -.->|uses| SERVICES
+    SERVICES --> INFRA
+
+    classDef llm fill:#7c3aed22,stroke:#7c3aed,color:#c4b5fd
+    classDef tool fill:#f59e0b22,stroke:#f59e0b,color:#fcd34d
+    classDef memory fill:#06b6d422,stroke:#06b6d4,color:#67e8f9
+    classDef planner fill:#10b98122,stroke:#10b981,color:#6ee7b7
+    classDef router fill:#3b82f622,stroke:#3b82f6,color:#93c5fd
+    classDef hitl fill:#ec489922,stroke:#ec4899,color:#f9a8d4
+    classDef guard fill:#ef444422,stroke:#ef4444,color:#fca5a5
+    classDef svc fill:#1e293b,stroke:#475569,color:#e2e8f0
+
+    class P1,P7,P11 llm
+    class P3,P10 tool
+    class P5,P13 memory
+    class P6 planner
+    class P2,P8 router
+    class P9 hitl
+    class P4,P12 guard
+    class S1,S2,S3,S4 svc
 ```
 
 ---
@@ -698,7 +722,7 @@ NiFi's back-pressure prevents agents from overwhelming downstream systems or bur
 NiFi clustering distributes agent workloads across nodes. Scale from a single laptop to a multi-node production cluster without changing agent definitions.
 
 ### 5. Version-Controlled Agent Blueprints
-NiFi Registry stores versioned agent definitions. Promote agents from dev → staging → production with full change tracking.
+FlowSync stores versioned agent definitions. Promote agents from dev → staging → production with full change tracking.
 
 ### 6. Tool Sandboxing & Safety
 Tool execution is sandboxed, rate-limited, and gated by guardrails. High-risk actions require human approval via the HumanInTheLoop processor.
@@ -773,7 +797,7 @@ First-class support for Model Context Protocol (MCP) — agents can connect to a
 | Runtime            | Apache NiFi 2.x (Java 21+)                         |
 | Custom Processors  | Java NAR bundle (nifi-agentflow-nar)                |
 | Coordination       | Apache ZooKeeper (NiFi clustering)                  |
-| Flow Versioning    | Apache NiFi Registry                                |
+| Flow Versioning    | Apache FlowSync                                |
 | LLM Providers      | Anthropic, OpenAI, AWS Bedrock, Ollama (local)      |
 | Vector Database    | Pinecone / ChromaDB / pgvector                      |
 | Tool Sandboxing    | Docker containers / gVisor                          |
@@ -781,7 +805,7 @@ First-class support for Model Context Protocol (MCP) — agents can connect to a
 | Messaging          | Apache Kafka (input/output)                         |
 | Secrets            | HashiCorp Vault / AWS Secrets Manager               |
 | Monitoring         | Prometheus + Grafana + NiFi Provenance              |
-| Agent Templates    | NiFi Registry + Git                                 |
+| Agent Templates    | FlowSync + Git                                 |
 
 ---
 
@@ -804,7 +828,7 @@ First-class support for Model Context Protocol (MCP) — agents can connect to a
 - Agent Trace Viewer UI extension
 
 ### Phase 4: Enterprise
-- NiFi Registry integration for agent versioning
+- FlowSync integration for agent versioning
 - Cluster-aware agent scaling
 - MCP tool connector
 - Agent Studio UI (visual agent designer)

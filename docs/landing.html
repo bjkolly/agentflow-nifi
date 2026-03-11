@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentFlow — Enterprise AI Agent Orchestration</title>
+<meta name="description" content="AgentFlow brings the governance, scalability, and auditability of Apache NiFi to autonomous AI agent orchestration. Built for Fortune 500 production.">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg2: #06060a;
+    --surface: #0d1117;
+    --surface2: #111827;
+    --surface3: #1a1a2e;
+    --border: #1f2937;
+    --border-light: #374151;
+    --text: #e5e7eb;
+    --text-muted: #9ca3af;
+    --text-dim: #6b7280;
+    --white: #ffffff;
+    --llm: #7c3aed;
+    --tool: #f59e0b;
+    --memory: #06b6d4;
+    --planner: #10b981;
+    --router: #3b82f6;
+    --hitl: #ec4899;
+    --guard: #ef4444;
+    --accent: #3b82f6;
+    --success: #22c55e;
+    --gradient: linear-gradient(135deg, #7c3aed, #3b82f6, #06b6d4);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ==================== NAVIGATION ==================== */
+  .nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding: 0.75rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .nav-brand {
+    font-weight: 800;
+    font-size: 1.1rem;
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .nav-links { display: flex; gap: 0.25rem; }
+  .nav-links a {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 0.4rem 0.7rem;
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+  .nav-links a:hover { color: var(--white); background: rgba(255,255,255,0.06); text-decoration: none; }
+
+  /* ==================== UTILITY ==================== */
+  .container { max-width: 1200px; margin: 0 auto; padding: 0 2rem; }
+  .section { padding: 6rem 0; }
+  .section-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--llm);
+    margin-bottom: 0.75rem;
+  }
+  .section-title {
+    font-size: 2.4rem;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 1rem;
+  }
+  .section-subtitle { color: var(--text-muted); font-size: 1.1rem; max-width: 700px; margin-bottom: 2.5rem; }
+  .gradient-text {
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .glass {
+    background: rgba(13,17,23,0.7);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    backdrop-filter: blur(8px);
+  }
+
+  /* Animations */
+  .fade-up {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .fade-up.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ==================== HERO ==================== */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    padding-top: 4rem;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(ellipse, rgba(124,58,237,0.12) 0%, rgba(59,130,246,0.05) 40%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-content { position: relative; z-index: 2; text-align: center; width: 100%; padding: 2rem 0; }
+  .hero h1 {
+    font-size: 3.8rem;
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 1.5rem;
+    letter-spacing: -1px;
+  }
+  .hero .subtitle {
+    font-size: 1.25rem;
+    color: var(--text-muted);
+    max-width: 720px;
+    margin: 0 auto 2.5rem;
+    line-height: 1.6;
+  }
+  .hero-ctas { display: flex; justify-content: center; gap: 1rem; margin-bottom: 3rem; flex-wrap: wrap; }
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.85rem 2rem;
+    background: var(--gradient);
+    color: var(--white);
+    font-weight: 700;
+    font-size: 0.95rem;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(124,58,237,0.3); text-decoration: none; }
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.85rem 2rem;
+    background: transparent;
+    color: var(--text);
+    font-weight: 600;
+    font-size: 0.95rem;
+    border-radius: 10px;
+    border: 1px solid var(--border-light);
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+  }
+  .btn-ghost:hover { border-color: var(--text-muted); background: rgba(255,255,255,0.04); text-decoration: none; }
+
+  /* Trust Badges */
+  .trust-row {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 3rem;
+  }
+  .trust-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 0.4rem 0.8rem;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 999px;
+    background: rgba(255,255,255,0.02);
+  }
+  .trust-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+
+  /* Animated Architecture Preview */
+  .arch-preview {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .arch-tier {
+    height: 52px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.7);
+    position: relative;
+    overflow: hidden;
+  }
+  .arch-tier::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+    animation: shimmer 3s infinite;
+  }
+  .arch-tier:nth-child(1)::after { animation-delay: 0s; }
+  .arch-tier:nth-child(2)::after { animation-delay: 0.5s; }
+  .arch-tier:nth-child(3)::after { animation-delay: 1s; }
+  .arch-tier:nth-child(4)::after { animation-delay: 1.5s; }
+  @keyframes shimmer { 0% { left: -100%; } 100% { left: 200%; } }
+  .tier-ui { background: linear-gradient(90deg, rgba(59,130,246,0.15), rgba(59,130,246,0.08)); border: 1px solid rgba(59,130,246,0.2); }
+  .tier-orch { background: linear-gradient(90deg, rgba(124,58,237,0.18), rgba(124,58,237,0.08)); border: 1px solid rgba(124,58,237,0.25); height: 80px; }
+  .tier-svc { background: linear-gradient(90deg, rgba(6,182,212,0.12), rgba(6,182,212,0.06)); border: 1px solid rgba(6,182,212,0.18); }
+  .tier-infra { background: linear-gradient(90deg, rgba(107,114,128,0.1), rgba(107,114,128,0.05)); border: 1px solid rgba(107,114,128,0.15); }
+
+  /* ==================== PROBLEM ==================== */
+  .problem-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .problem-card {
+    padding: 2rem;
+    border-radius: 16px;
+    border: 1px solid;
+  }
+  .problem-card.bad {
+    border-color: rgba(239,68,68,0.2);
+    background: rgba(239,68,68,0.03);
+  }
+  .problem-card.good {
+    border-color: rgba(34,197,94,0.2);
+    background: rgba(34,197,94,0.03);
+  }
+  .problem-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 1.25rem; }
+  .problem-card.bad h3 { color: var(--guard); }
+  .problem-card.good h3 { color: var(--success); }
+  .problem-item {
+    display: flex;
+    gap: 0.6rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    align-items: flex-start;
+  }
+  .problem-item .icon { flex-shrink: 0; font-size: 0.85rem; margin-top: 2px; }
+  .problem-card.bad .icon { color: var(--guard); }
+  .problem-card.good .icon { color: var(--success); }
+
+  /* ==================== STATS ==================== */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+  }
+  .stat-card {
+    text-align: center;
+    padding: 2rem 1rem;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+  }
+  .stat-number {
+    font-size: 3rem;
+    font-weight: 900;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+  .stat-label { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
+
+  /* Mapping Table */
+  .mapping-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+  .mapping-table th {
+    text-align: left;
+    padding: 0.9rem 1.2rem;
+    background: rgba(124,58,237,0.08);
+    color: var(--text-muted);
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid var(--border);
+  }
+  .mapping-table td {
+    padding: 0.85rem 1.2rem;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    color: var(--text-muted);
+  }
+  .mapping-table td:nth-child(2) { color: var(--llm); font-weight: 600; }
+  .mapping-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* ==================== ARCHITECTURE ==================== */
+  .arch-diagram {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  .arch-layer {
+    border-radius: 14px;
+    padding: 1.5rem;
+    border: 1px solid;
+    position: relative;
+  }
+  .arch-layer-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 0.75rem;
+  }
+  .arch-pills { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .arch-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.9rem;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border: 1px solid;
+    position: relative;
+    cursor: default;
+    transition: all 0.2s;
+  }
+  .arch-pill:hover { transform: translateY(-1px); }
+  .arch-pill .pill-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .layer-ui { border-color: rgba(59,130,246,0.2); background: rgba(59,130,246,0.04); }
+  .layer-ui .arch-layer-label { color: var(--router); }
+  .layer-orch { border-color: rgba(124,58,237,0.25); background: rgba(124,58,237,0.04); }
+  .layer-orch .arch-layer-label { color: var(--llm); }
+  .layer-svc { border-color: rgba(6,182,212,0.2); background: rgba(6,182,212,0.04); }
+  .layer-svc .arch-layer-label { color: var(--memory); }
+  .layer-infra { border-color: rgba(107,114,128,0.15); background: rgba(107,114,128,0.03); }
+  .layer-infra .arch-layer-label { color: var(--text-dim); }
+
+  /* Agent boxes inside orchestration */
+  .agent-boxes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-top: 0.5rem; }
+  .agent-box {
+    border-radius: 10px;
+    padding: 1rem;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(0,0,0,0.3);
+  }
+  .agent-box-title { font-size: 0.78rem; font-weight: 700; margin-bottom: 0.5rem; }
+
+  /* ==================== PROCESSORS ==================== */
+  .proc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; }
+  .proc-card {
+    padding: 1.5rem;
+    border-radius: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    transition: all 0.3s;
+    border-top: 3px solid;
+  }
+  .proc-card:hover { border-color: rgba(255,255,255,0.1); transform: translateY(-2px); }
+  .proc-icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
+  .proc-name { font-size: 1rem; font-weight: 700; margin-bottom: 0.25rem; }
+  .proc-desc { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem; line-height: 1.5; }
+  .proc-rels { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+  .proc-rel {
+    font-size: 0.68rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 600;
+    border: 1px solid;
+    opacity: 0.8;
+  }
+  .callout-box {
+    margin-top: 2rem;
+    padding: 1.5rem 2rem;
+    border-radius: 12px;
+    border-left: 4px solid var(--llm);
+    background: rgba(124,58,237,0.06);
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+  .callout-box strong { color: var(--white); }
+
+  /* ==================== GOVERNANCE ==================== */
+  .gov-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start; margin-bottom: 3rem; }
+  .gov-grid.reverse { direction: rtl; }
+  .gov-grid.reverse > * { direction: ltr; }
+  .gov-text h3 { font-size: 1.3rem; font-weight: 700; margin-bottom: 0.75rem; }
+  .gov-text p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.75rem; }
+  .gov-list { list-style: none; }
+  .gov-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+  }
+  .gov-list li .check { color: var(--success); flex-shrink: 0; }
+
+  /* Provenance Terminal */
+  .provenance-terminal {
+    background: #0c0c14;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    line-height: 1.8;
+  }
+  .terminal-header {
+    background: rgba(255,255,255,0.04);
+    padding: 0.5rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .terminal-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .terminal-title { font-size: 0.7rem; color: var(--text-dim); margin-left: 0.5rem; }
+  .terminal-body { padding: 1rem; overflow-x: auto; }
+  .prov-line { display: flex; gap: 1rem; white-space: nowrap; }
+  .prov-time { color: var(--text-dim); }
+  .prov-event { font-weight: 600; min-width: 90px; }
+  .prov-proc { color: var(--text-muted); min-width: 110px; }
+  .prov-detail { color: var(--text-dim); }
+  .ev-receive { color: var(--router); }
+  .ev-attr { color: var(--memory); }
+  .ev-content { color: var(--llm); }
+  .ev-route { color: var(--planner); }
+  .ev-send { color: var(--tool); }
+
+  /* Approval Card Mockup */
+  .approval-card {
+    background: var(--surface);
+    border: 1px solid var(--hitl);
+    border-radius: 14px;
+    padding: 1.5rem;
+    max-width: 360px;
+  }
+  .approval-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+  .approval-badge { font-size: 0.7rem; padding: 0.2rem 0.6rem; border-radius: 999px; font-weight: 600; }
+  .approval-action { font-size: 0.85rem; color: var(--text); margin-bottom: 0.5rem; }
+  .approval-meta { font-size: 0.75rem; color: var(--text-dim); margin-bottom: 1rem; }
+  .approval-btns { display: flex; gap: 0.5rem; }
+  .btn-approve {
+    flex: 1;
+    padding: 0.5rem;
+    border-radius: 8px;
+    border: none;
+    font-weight: 700;
+    font-size: 0.8rem;
+    cursor: pointer;
+    background: var(--success);
+    color: var(--bg);
+  }
+  .btn-reject {
+    flex: 1;
+    padding: 0.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--guard);
+    background: transparent;
+    font-weight: 700;
+    font-size: 0.8rem;
+    cursor: pointer;
+    color: var(--guard);
+  }
+
+  /* ==================== COMPARISON TABLE ==================== */
+  .comparison-wrap { overflow-x: auto; border-radius: 14px; border: 1px solid var(--border); }
+  .comparison-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; min-width: 700px; }
+  .comparison-table thead th {
+    padding: 1rem 0.75rem;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.78rem;
+    border-bottom: 2px solid var(--border);
+    background: rgba(255,255,255,0.02);
+    color: var(--text-muted);
+  }
+  .comparison-table thead th:first-child { text-align: left; padding-left: 1.25rem; min-width: 200px; }
+  .comparison-table thead th:nth-child(2) {
+    background: rgba(124,58,237,0.1);
+    color: var(--llm);
+  }
+  .comparison-table tbody td {
+    padding: 0.75rem;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    color: var(--text-muted);
+  }
+  .comparison-table tbody td:first-child { text-align: left; padding-left: 1.25rem; font-weight: 500; color: var(--text); }
+  .comparison-table tbody td:nth-child(2) { background: rgba(124,58,237,0.04); }
+  .comparison-table tbody tr:hover td { background: rgba(255,255,255,0.02); }
+  .comparison-table tbody tr:hover td:nth-child(2) { background: rgba(124,58,237,0.08); }
+  .c-yes { color: var(--success); font-weight: 700; font-size: 1.1rem; }
+  .c-no { color: var(--guard); font-size: 1.1rem; }
+  .c-partial { color: var(--tool); font-size: 0.9rem; }
+
+  /* ==================== USE CASES ==================== */
+  .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .tab-btn {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 0.55rem 1.2rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .tab-btn:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+  .tab-btn.active { background: rgba(124,58,237,0.15); border-color: var(--llm); color: var(--white); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .usecase-content { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center; }
+  .usecase-flow { display: flex; flex-direction: column; gap: 0.4rem; }
+  .usecase-step {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+  .usecase-step .step-color { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .usecase-arrow { text-align: center; color: var(--text-dim); font-size: 0.8rem; }
+  .usecase-text h4 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.75rem; }
+  .usecase-text p { color: var(--text-muted); font-size: 0.88rem; }
+
+  /* ==================== DEPLOYMENT ==================== */
+  .deploy-stages { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 3rem; }
+  .deploy-card {
+    padding: 2rem 1.5rem;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    text-align: center;
+    transition: all 0.3s;
+  }
+  .deploy-card:hover { border-color: rgba(255,255,255,0.1); transform: translateY(-2px); }
+  .deploy-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+  .deploy-card h4 { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .deploy-card p { font-size: 0.82rem; color: var(--text-muted); }
+  .deploy-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-dim);
+    font-size: 1.5rem;
+  }
+  .tech-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.6rem; }
+  .tech-item {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.6rem 0.9rem;
+  }
+  .tech-layer { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); }
+  .tech-name { font-size: 0.82rem; font-weight: 600; }
+
+  /* ==================== CTA ==================== */
+  .cta-section {
+    text-align: center;
+    padding: 6rem 0;
+    background: linear-gradient(180deg, var(--bg) 0%, rgba(124,58,237,0.05) 50%, var(--bg) 100%);
+  }
+  .cta-section h2 { font-size: 2.2rem; font-weight: 800; margin-bottom: 1rem; }
+  .cta-section p { color: var(--text-muted); max-width: 600px; margin: 0 auto 2rem; font-size: 1.05rem; }
+
+  /* ==================== FOOTER ==================== */
+  .footer {
+    text-align: center;
+    padding: 2rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+
+  /* ==================== RESPONSIVE ==================== */
+  @media (max-width: 768px) {
+    .hero h1 { font-size: 2.4rem; }
+    .hero .subtitle { font-size: 1rem; }
+    .problem-grid { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .gov-grid { grid-template-columns: 1fr; }
+    .usecase-content { grid-template-columns: 1fr; }
+    .deploy-stages { grid-template-columns: 1fr; }
+    .agent-boxes { grid-template-columns: 1fr; }
+    .proc-grid { grid-template-columns: 1fr; }
+    .section-title { font-size: 1.8rem; }
+    .nav-links { display: none; }
+    .stat-number { font-size: 2.2rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== NAVIGATION ===================== -->
+<nav class="nav">
+  <div class="nav-brand">AgentFlow</div>
+  <div class="nav-links">
+    <a href="#problem">The Problem</a>
+    <a href="#foundation">Why NiFi</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#capabilities">Capabilities</a>
+    <a href="#governance">Governance</a>
+    <a href="#comparison">Comparison</a>
+    <a href="#usecases">Use Cases</a>
+    <a href="#deploy">Deployment</a>
+  </div>
+</nav>
+
+<!-- ===================== HERO ===================== -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-content">
+      <h1>AI Agents Deserve<br><span class="gradient-text">Enterprise Infrastructure.</span></h1>
+      <p class="subtitle">
+        AgentFlow brings the governance, scalability, and auditability of Apache NiFi
+        to autonomous AI agent orchestration. Built for Fortune 500 production &mdash;
+        not Python notebook experiments.
+      </p>
+      <div class="hero-ctas">
+        <a href="#architecture" class="btn-primary">Explore the Architecture &rarr;</a>
+        <a href="architecture.html" class="btn-ghost">Interactive Diagram</a>
+      </div>
+      <div class="trust-row">
+        <div class="trust-badge"><span class="dot"></span> NSA Heritage</div>
+        <div class="trust-badge"><span class="dot"></span> 10+ Years Production</div>
+        <div class="trust-badge"><span class="dot"></span> 75%+ Fortune 100 Use NiFi</div>
+        <div class="trust-badge"><span class="dot"></span> FedRAMP Environments</div>
+        <div class="trust-badge"><span class="dot"></span> HIPAA Compliant</div>
+      </div>
+      <div class="arch-preview fade-up">
+        <div class="arch-tier tier-ui">Interface Layer &mdash; AgentFlow 3D UI + REST API</div>
+        <div class="arch-tier tier-orch">Agent Orchestration &mdash; Apache NiFi Runtime</div>
+        <div class="arch-tier tier-svc">Controller Services &mdash; LLM + VectorDB + Tools + Guardrails</div>
+        <div class="arch-tier tier-infra">Infrastructure &mdash; LLM APIs + Kafka + Vault + ZooKeeper</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== PROBLEM ===================== -->
+<section class="section" id="problem">
+  <div class="container">
+    <div class="section-label fade-up">The Problem</div>
+    <h2 class="section-title fade-up">Your AI Agents Are Running on<br><span class="gradient-text">Prototype Infrastructure</span></h2>
+    <p class="section-subtitle fade-up">Most AI agent frameworks were designed for demos and hackathons. When the stakes are real, you need infrastructure that was built for mission-critical operations from day one.</p>
+
+    <div class="problem-grid fade-up">
+      <div class="problem-card bad">
+        <h3>&#x26A0; What You Have Today</h3>
+        <div class="problem-item"><span class="icon">&#x2717;</span> Python scripts with no audit trail</div>
+        <div class="problem-item"><span class="icon">&#x2717;</span> No governance on agent actions</div>
+        <div class="problem-item"><span class="icon">&#x2717;</span> Scaling means rewriting everything</div>
+        <div class="problem-item"><span class="icon">&#x2717;</span> One runaway agent burns your API budget</div>
+        <div class="problem-item"><span class="icon">&#x2717;</span> No compliance story for regulators</div>
+        <div class="problem-item"><span class="icon">&#x2717;</span> "It works on my laptop" deployment model</div>
+        <div class="problem-item"><span class="icon">&#x2717;</span> No version control for agent definitions</div>
+      </div>
+      <div class="problem-card good">
+        <h3>&#x2705; What You Need</h3>
+        <div class="problem-item"><span class="icon">&#x2713;</span> Every agent action recorded and replayable</div>
+        <div class="problem-item"><span class="icon">&#x2713;</span> Guardrails enforced at the infrastructure level</div>
+        <div class="problem-item"><span class="icon">&#x2713;</span> Same platform from laptop to multi-node cluster</div>
+        <div class="problem-item"><span class="icon">&#x2713;</span> Back-pressure prevents cost overruns by design</div>
+        <div class="problem-item"><span class="icon">&#x2713;</span> Built-in compliance for FedRAMP / HIPAA / SOX</div>
+        <div class="problem-item"><span class="icon">&#x2713;</span> Visual agent design that non-developers can audit</div>
+        <div class="problem-item"><span class="icon">&#x2713;</span> Versioned agent blueprints with dev &rarr; prod promotion</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== WHY NIFI ===================== -->
+<section class="section" id="foundation" style="background: rgba(124,58,237,0.02);">
+  <div class="container">
+    <div class="section-label fade-up">The Foundation</div>
+    <h2 class="section-title fade-up">Built on a Platform That's<br><span class="gradient-text">Already in Your Data Center</span></h2>
+    <p class="section-subtitle fade-up">We didn't build another Python framework. We built AI agent capabilities into the platform your infrastructure team already trusts.</p>
+
+    <div class="stats-grid fade-up">
+      <div class="stat-card">
+        <div class="stat-number gradient-text">10+</div>
+        <div class="stat-label">Years in Enterprise Production</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number gradient-text">75%</div>
+        <div class="stat-label">of Fortune 100 Use NiFi</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number gradient-text">5B+</div>
+        <div class="stat-label">FlowFiles Processed Daily</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number gradient-text">0</div>
+        <div class="stat-label">Code Changes to Scale</div>
+      </div>
+    </div>
+
+    <div class="glass fade-up" style="overflow: hidden;">
+      <table class="mapping-table">
+        <thead>
+          <tr><th>NiFi Concept</th><th>AgentFlow Mapping</th><th>Why It Matters</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Process Group</td><td>Autonomous Agent</td><td>Self-contained, versioned, deployable unit of intelligence</td></tr>
+          <tr><td>Processor</td><td>Agent Capability</td><td>LLM calls, tool execution, memory, planning, routing</td></tr>
+          <tr><td>FlowFile</td><td>Task / Message</td><td>Full context travels with every agent action</td></tr>
+          <tr><td>Data Provenance</td><td>Complete Audit Trail</td><td>Every LLM call, tool use, decision &mdash; recorded and replayable</td></tr>
+          <tr><td>Back-pressure</td><td>Cost &amp; Rate Control</td><td>Agents cannot burn budgets or overwhelm downstream systems</td></tr>
+          <tr><td>Connection Queue</td><td>Communication Channel</td><td>Buffered, observable messaging between agents</td></tr>
+          <tr><td>Clustering</td><td>Horizontal Scale</td><td>Add nodes, not code changes &mdash; automatic workload distribution</td></tr>
+          <tr><td>FlowSync</td><td>Agent Version Control</td><td>dev &rarr; staging &rarr; prod with full diff history</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== ARCHITECTURE ===================== -->
+<section class="section" id="architecture">
+  <div class="container">
+    <div class="section-label fade-up">Architecture</div>
+    <h2 class="section-title fade-up">Four-Tier Architecture for<br><span class="gradient-text">Mission-Critical AI</span></h2>
+    <p class="section-subtitle fade-up">A production-grade stack where every layer is proven, governed, and scalable.</p>
+
+    <div class="arch-diagram fade-up">
+      <!-- Interface Layer -->
+      <div class="arch-layer layer-ui">
+        <div class="arch-layer-label">Interface Layer</div>
+        <div class="arch-pills">
+          <span class="arch-pill" style="border-color: rgba(59,130,246,0.3); color: var(--router); background: rgba(59,130,246,0.08);">
+            <span class="pill-dot" style="background: var(--router);"></span> AgentFlow 3D UI
+          </span>
+          <span class="arch-pill" style="border-color: rgba(107,114,128,0.3); color: var(--text-muted); background: rgba(107,114,128,0.08);">
+            <span class="pill-dot" style="background: var(--text-dim);"></span> NiFi Canvas
+          </span>
+          <span class="arch-pill" style="border-color: rgba(16,185,129,0.3); color: var(--planner); background: rgba(16,185,129,0.08);">
+            <span class="pill-dot" style="background: var(--planner);"></span> REST API
+          </span>
+          <span class="arch-pill" style="border-color: rgba(245,158,11,0.3); color: var(--tool); background: rgba(245,158,11,0.08);">
+            <span class="pill-dot" style="background: var(--tool);"></span> FlowSync
+          </span>
+        </div>
+      </div>
+
+      <!-- Orchestration Layer -->
+      <div class="arch-layer layer-orch">
+        <div class="arch-layer-label">Agent Orchestration &mdash; Apache NiFi Runtime</div>
+        <div class="agent-boxes">
+          <div class="agent-box">
+            <div class="agent-box-title" style="color: var(--router);">Agent A &mdash; Research Analyst</div>
+            <div class="arch-pills">
+              <span class="arch-pill" style="border-color: rgba(124,58,237,0.3); color: var(--llm); background: rgba(124,58,237,0.1); font-size: 0.7rem; padding: 0.25rem 0.6rem;">
+                <span class="pill-dot" style="background: var(--llm);"></span> LLMInference
+              </span>
+              <span class="arch-pill" style="border-color: rgba(245,158,11,0.3); color: var(--tool); background: rgba(245,158,11,0.1); font-size: 0.7rem; padding: 0.25rem 0.6rem;">
+                <span class="pill-dot" style="background: var(--tool);"></span> ToolExecutor
+              </span>
+              <span class="arch-pill" style="border-color: rgba(59,130,246,0.3); color: var(--router); background: rgba(59,130,246,0.1); font-size: 0.7rem; padding: 0.25rem 0.6rem;">
+                <span class="pill-dot" style="background: var(--router);"></span> Router
+              </span>
+            </div>
+          </div>
+          <div class="agent-box">
+            <div class="agent-box-title" style="color: var(--planner);">Agent B &mdash; Task Planner</div>
+            <div class="arch-pills">
+              <span class="arch-pill" style="border-color: rgba(16,185,129,0.3); color: var(--planner); background: rgba(16,185,129,0.1); font-size: 0.7rem; padding: 0.25rem 0.6rem;">
+                <span class="pill-dot" style="background: var(--planner);"></span> TaskPlanner
+              </span>
+              <span class="arch-pill" style="border-color: rgba(124,58,237,0.3); color: var(--llm); background: rgba(124,58,237,0.1); font-size: 0.7rem; padding: 0.25rem 0.6rem;">
+                <span class="pill-dot" style="background: var(--llm);"></span> LLMInference
+              </span>
+              <span class="arch-pill" style="border-color: rgba(236,72,153,0.3); color: var(--hitl); background: rgba(236,72,153,0.1); font-size: 0.7rem; padding: 0.25rem 0.6rem;">
+                <span class="pill-dot" style="background: var(--hitl);"></span> HumanInLoop
+              </span>
+            </div>
+          </div>
+          <div class="agent-box">
+            <div class="agent-box-title" style="color: var(--tool);">Agent C &mdash; Tool Specialist</div>
+            <div class="arch-pills">
+              <span class="arch-pill" style="border-color: rgba(245,158,11,0.3); color: var(--tool); background: rgba(245,158,11,0.1); font-size: 0.7rem; padding: 0.25rem 0.6rem;">
+                <span class="pill-dot" style="background: var(--tool);"></span> ToolExecutor
+              </span>
+              <span class="arch-pill" style="border-color: rgba(239,68,68,0.3); color: var(--guard); background: rgba(239,68,68,0.1); font-size: 0.7rem; padding: 0.25rem 0.6rem;">
+                <span class="pill-dot" style="background: var(--guard);"></span> Guardrails
+              </span>
+              <span class="arch-pill" style="border-color: rgba(6,182,212,0.3); color: var(--memory); background: rgba(6,182,212,0.1); font-size: 0.7rem; padding: 0.25rem 0.6rem;">
+                <span class="pill-dot" style="background: var(--memory);"></span> Memory
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controller Services -->
+      <div class="arch-layer layer-svc">
+        <div class="arch-layer-label">Controller Services</div>
+        <div class="arch-pills">
+          <span class="arch-pill" style="border-color: rgba(124,58,237,0.3); color: var(--llm); background: rgba(124,58,237,0.08);">
+            <span class="pill-dot" style="background: var(--llm);"></span> LLMClientService &mdash; Claude, GPT, Bedrock, Ollama
+          </span>
+          <span class="arch-pill" style="border-color: rgba(6,182,212,0.3); color: var(--memory); background: rgba(6,182,212,0.08);">
+            <span class="pill-dot" style="background: var(--memory);"></span> VectorDBService &mdash; Pinecone, Chroma, pgvector
+          </span>
+          <span class="arch-pill" style="border-color: rgba(245,158,11,0.3); color: var(--tool); background: rgba(245,158,11,0.08);">
+            <span class="pill-dot" style="background: var(--tool);"></span> ToolRegistryService &mdash; HTTP, MCP, SQL, Sandbox
+          </span>
+          <span class="arch-pill" style="border-color: rgba(239,68,68,0.3); color: var(--guard); background: rgba(239,68,68,0.08);">
+            <span class="pill-dot" style="background: var(--guard);"></span> GuardrailsService &mdash; PII, Cost, Content Policy
+          </span>
+        </div>
+      </div>
+
+      <!-- Infrastructure -->
+      <div class="arch-layer layer-infra">
+        <div class="arch-layer-label">External Infrastructure</div>
+        <div class="arch-pills">
+          <span class="arch-pill" style="border-color: rgba(107,114,128,0.2); color: var(--text-muted); background: rgba(107,114,128,0.06);">LLM APIs</span>
+          <span class="arch-pill" style="border-color: rgba(107,114,128,0.2); color: var(--text-muted); background: rgba(107,114,128,0.06);">Vector DBs</span>
+          <span class="arch-pill" style="border-color: rgba(107,114,128,0.2); color: var(--text-muted); background: rgba(107,114,128,0.06);">Apache Kafka</span>
+          <span class="arch-pill" style="border-color: rgba(107,114,128,0.2); color: var(--text-muted); background: rgba(107,114,128,0.06);">Redis</span>
+          <span class="arch-pill" style="border-color: rgba(107,114,128,0.2); color: var(--text-muted); background: rgba(107,114,128,0.06);">HashiCorp Vault</span>
+          <span class="arch-pill" style="border-color: rgba(107,114,128,0.2); color: var(--text-muted); background: rgba(107,114,128,0.06);">Prometheus + Grafana</span>
+          <span class="arch-pill" style="border-color: rgba(107,114,128,0.2); color: var(--text-muted); background: rgba(107,114,128,0.06);">ZooKeeper</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CAPABILITIES ===================== -->
+<section class="section" id="capabilities">
+  <div class="container">
+    <div class="section-label fade-up">Capabilities</div>
+    <h2 class="section-title fade-up">Purpose-Built Processors for<br><span class="gradient-text">Every Agent Need</span></h2>
+    <p class="section-subtitle fade-up">Seven custom NiFi processors &mdash; each a hardened, production-ready component designed for enterprise AI orchestration.</p>
+
+    <div class="proc-grid fade-up">
+      <div class="proc-card" style="border-top-color: var(--llm);">
+        <div class="proc-icon">&#x2728;</div>
+        <div class="proc-name" style="color: var(--llm);">LLMInference</div>
+        <div class="proc-desc">Sends prompts to LLM providers with connection pooling, retry, and streaming. Tracks every token consumed.</div>
+        <div class="proc-rels">
+          <span class="proc-rel" style="border-color: rgba(34,197,94,0.3); color: var(--success);">success</span>
+          <span class="proc-rel" style="border-color: rgba(245,158,11,0.3); color: var(--tool);">tool_call</span>
+          <span class="proc-rel" style="border-color: rgba(239,68,68,0.3); color: var(--guard);">failure</span>
+          <span class="proc-rel" style="border-color: rgba(249,115,22,0.3); color: #f97316;">rate_limit</span>
+        </div>
+      </div>
+      <div class="proc-card" style="border-top-color: var(--tool);">
+        <div class="proc-icon">&#x1F527;</div>
+        <div class="proc-name" style="color: var(--tool);">ToolExecutor</div>
+        <div class="proc-desc">Executes tool/function calls in sandboxed environments. Supports HTTP, MCP, SQL with configurable timeouts.</div>
+        <div class="proc-rels">
+          <span class="proc-rel" style="border-color: rgba(34,197,94,0.3); color: var(--success);">success</span>
+          <span class="proc-rel" style="border-color: rgba(236,72,153,0.3); color: var(--hitl);">requires_human</span>
+          <span class="proc-rel" style="border-color: rgba(239,68,68,0.3); color: var(--guard);">unauthorized</span>
+        </div>
+      </div>
+      <div class="proc-card" style="border-top-color: var(--memory);">
+        <div class="proc-icon">&#x1F9E0;</div>
+        <div class="proc-name" style="color: var(--memory);">MemoryManager</div>
+        <div class="proc-desc">Manages long-term agent memory via vector databases. Semantic retrieval with configurable scope and threshold.</div>
+        <div class="proc-rels">
+          <span class="proc-rel" style="border-color: rgba(34,197,94,0.3); color: var(--success);">success</span>
+          <span class="proc-rel" style="border-color: rgba(239,68,68,0.3); color: var(--guard);">failure</span>
+        </div>
+      </div>
+      <div class="proc-card" style="border-top-color: var(--planner);">
+        <div class="proc-icon">&#x1F5FA;</div>
+        <div class="proc-name" style="color: var(--planner);">TaskPlanner</div>
+        <div class="proc-desc">Decomposes complex tasks into subtasks using ReAct, Plan-and-Execute, or Tree-of-Thought strategies.</div>
+        <div class="proc-rels">
+          <span class="proc-rel" style="border-color: rgba(16,185,129,0.3); color: var(--planner);">subtask</span>
+          <span class="proc-rel" style="border-color: rgba(34,197,94,0.3); color: var(--success);">complete</span>
+          <span class="proc-rel" style="border-color: rgba(239,68,68,0.3); color: var(--guard);">failure</span>
+        </div>
+      </div>
+      <div class="proc-card" style="border-top-color: var(--router);">
+        <div class="proc-icon">&#x1F500;</div>
+        <div class="proc-name" style="color: var(--router);">AgentRouter</div>
+        <div class="proc-desc">Routes tasks to the right agent using LLM-based semantic routing, rule-based matching, or round-robin load balancing.</div>
+        <div class="proc-rels">
+          <span class="proc-rel" style="border-color: rgba(59,130,246,0.3); color: var(--router);">agent.researcher</span>
+          <span class="proc-rel" style="border-color: rgba(59,130,246,0.3); color: var(--router);">agent.coder</span>
+          <span class="proc-rel" style="border-color: rgba(59,130,246,0.3); color: var(--router);">agent.*</span>
+        </div>
+      </div>
+      <div class="proc-card" style="border-top-color: var(--hitl);">
+        <div class="proc-icon">&#x270B;</div>
+        <div class="proc-name" style="color: var(--hitl);">HumanInTheLoop</div>
+        <div class="proc-desc">Pauses agent execution for human approval. Supports UI, Slack, and API channels with auto-approve rules.</div>
+        <div class="proc-rels">
+          <span class="proc-rel" style="border-color: rgba(34,197,94,0.3); color: var(--success);">approved</span>
+          <span class="proc-rel" style="border-color: rgba(239,68,68,0.3); color: var(--guard);">rejected</span>
+          <span class="proc-rel" style="border-color: rgba(245,158,11,0.3); color: var(--tool);">timed_out</span>
+        </div>
+      </div>
+      <div class="proc-card" style="border-top-color: var(--guard);">
+        <div class="proc-icon">&#x1F6E1;</div>
+        <div class="proc-name" style="color: var(--guard);">GuardrailsEnforcer</div>
+        <div class="proc-desc">Enforces safety policies: PII detection, content filtering, cost/token budgets, prohibited action boundaries.</div>
+        <div class="proc-rels">
+          <span class="proc-rel" style="border-color: rgba(34,197,94,0.3); color: var(--success);">pass</span>
+          <span class="proc-rel" style="border-color: rgba(239,68,68,0.3); color: var(--guard);">violation</span>
+          <span class="proc-rel" style="border-color: rgba(245,158,11,0.3); color: var(--tool);">budget_exceeded</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout-box fade-up">
+      <strong>Every processor writes structured FlowFile attributes.</strong> Every attribute is captured by NiFi Provenance. This means every LLM call, every tool execution, every routing decision, every guardrail check &mdash; <strong>automatically audited with zero additional code.</strong>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== GOVERNANCE ===================== -->
+<section class="section" id="governance" style="background: rgba(239,68,68,0.02);">
+  <div class="container">
+    <div class="section-label fade-up" style="color: var(--guard);">Governance &amp; Safety</div>
+    <h2 class="section-title fade-up">Complete Governance.<br><span class="gradient-text">Not an Afterthought.</span></h2>
+    <p class="section-subtitle fade-up">The only AI agent framework with built-in compliance infrastructure. Every action is recorded, every agent is governed, every cost is controlled.</p>
+
+    <!-- Provenance -->
+    <div class="gov-grid fade-up">
+      <div class="gov-text">
+        <h3 style="color: var(--memory);">&#x1F4CA; Data Provenance &mdash; Full Audit Trail</h3>
+        <p>NiFi's provenance system records every event that touches a FlowFile. For AgentFlow, this means every LLM call, every tool execution, every routing decision, and every guardrail check is automatically logged with timestamps, processor IDs, and full attribute snapshots.</p>
+        <ul class="gov-list">
+          <li><span class="check">&#x2713;</span> Queryable event history per task/agent</li>
+          <li><span class="check">&#x2713;</span> Replayable execution traces</li>
+          <li><span class="check">&#x2713;</span> Token and cost tracking per event</li>
+          <li><span class="check">&#x2713;</span> Exportable for compliance auditors</li>
+          <li><span class="check">&#x2713;</span> Full lineage graph visualization</li>
+        </ul>
+      </div>
+      <div class="provenance-terminal">
+        <div class="terminal-header">
+          <span class="terminal-dot" style="background: #ef4444;"></span>
+          <span class="terminal-dot" style="background: #f59e0b;"></span>
+          <span class="terminal-dot" style="background: #22c55e;"></span>
+          <span class="terminal-title">NiFi Provenance &mdash; Task trace-5678</span>
+        </div>
+        <div class="terminal-body">
+          <div class="prov-line"><span class="prov-time">10:00:01.0</span><span class="prov-event ev-receive">RECEIVE</span><span class="prov-proc">InputPort</span><span class="prov-detail">task.id=1234</span></div>
+          <div class="prov-line"><span class="prov-time">10:00:01.1</span><span class="prov-event ev-attr">ATTRIBUTES</span><span class="prov-proc">GuardrailsPre</span><span class="prov-detail">status=valid</span></div>
+          <div class="prov-line"><span class="prov-time">10:00:01.3</span><span class="prov-event ev-content">CONTENT_MOD</span><span class="prov-proc">MemoryRetrieve</span><span class="prov-detail">+3 memories</span></div>
+          <div class="prov-line"><span class="prov-time">10:00:02.1</span><span class="prov-event ev-content">CONTENT_MOD</span><span class="prov-proc">LLMInference</span><span class="prov-detail">model=claude-4</span></div>
+          <div class="prov-line"><span class="prov-time">10:00:02.1</span><span class="prov-event ev-attr">ATTRIBUTES</span><span class="prov-proc">LLMInference</span><span class="prov-detail">tokens=1523</span></div>
+          <div class="prov-line"><span class="prov-time">10:00:02.2</span><span class="prov-event ev-route">ROUTE</span><span class="prov-proc">Router</span><span class="prov-detail">&rarr; tool_call</span></div>
+          <div class="prov-line"><span class="prov-time">10:00:03.5</span><span class="prov-event ev-send">CONTENT_MOD</span><span class="prov-proc">ToolExecutor</span><span class="prov-detail">web_search</span></div>
+          <div class="prov-line"><span class="prov-time">10:00:03.6</span><span class="prov-event ev-content">CONTENT_MOD</span><span class="prov-proc">LLMInference</span><span class="prov-detail">iteration 2</span></div>
+          <div class="prov-line"><span class="prov-time">10:00:04.2</span><span class="prov-event ev-route">ROUTE</span><span class="prov-proc">Router</span><span class="prov-detail">&rarr; complete</span></div>
+          <div class="prov-line"><span class="prov-time">10:00:04.3</span><span class="prov-event ev-attr">ATTRIBUTES</span><span class="prov-proc">GuardrailsPost</span><span class="prov-detail">status=clean</span></div>
+          <div class="prov-line"><span class="prov-time">10:00:04.4</span><span class="prov-event ev-content">CONTENT_MOD</span><span class="prov-proc">MemoryStore</span><span class="prov-detail">saved to vector</span></div>
+          <div class="prov-line"><span class="prov-time">10:00:04.5</span><span class="prov-event ev-send">SEND</span><span class="prov-proc">OutputPort</span><span class="prov-detail">&rarr; next agent</span></div>
+          <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.06); color: var(--text-dim); font-size: 0.7rem;">
+            Total: 12 events &nbsp;|&nbsp; 4.5s latency &nbsp;|&nbsp; 3,241 tokens &nbsp;|&nbsp; $0.012 cost
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HITL Approval -->
+    <div class="gov-grid reverse fade-up" style="margin-bottom: 0;">
+      <div class="gov-text">
+        <h3 style="color: var(--hitl);">&#x270B; Human-in-the-Loop &mdash; Approval Gates</h3>
+        <p>High-risk agent actions are held for human approval before execution. NiFi's back-pressure mechanism naturally queues the FlowFile until a human responds &mdash; no polling, no external queues needed.</p>
+        <ul class="gov-list">
+          <li><span class="check">&#x2713;</span> Configurable approval channels (UI, Slack, API)</li>
+          <li><span class="check">&#x2713;</span> Auto-approve rules for low-risk actions</li>
+          <li><span class="check">&#x2713;</span> Timeout escalation policies</li>
+          <li><span class="check">&#x2713;</span> Full audit of who approved what and when</li>
+          <li><span class="check">&#x2713;</span> No additional infrastructure needed</li>
+        </ul>
+      </div>
+      <div style="display: flex; justify-content: center;">
+        <div class="approval-card">
+          <div class="approval-header">
+            <span style="font-size: 0.85rem; font-weight: 700; color: var(--hitl);">&#x1F514; Approval Required</span>
+            <span class="approval-badge" style="background: rgba(245,158,11,0.15); color: var(--tool);">MEDIUM RISK</span>
+          </div>
+          <div class="approval-action"><strong>Agent:</strong> Research Analyst</div>
+          <div class="approval-action"><strong>Action:</strong> Execute web_search tool for external data retrieval</div>
+          <div class="approval-meta">Task: research_query #1234 &nbsp;&bull;&nbsp; Iteration 3 of 10 &nbsp;&bull;&nbsp; $0.008 spent</div>
+          <div style="font-size: 0.75rem; color: var(--text-dim); margin-bottom: 1rem;">&#x23F1; Timeout: 54:32 remaining</div>
+          <div class="approval-btns">
+            <button class="btn-approve">&#x2713; Approve</button>
+            <button class="btn-reject">&#x2717; Reject</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== COMPETITIVE COMPARISON ===================== -->
+<section class="section" id="comparison">
+  <div class="container">
+    <div class="section-label fade-up">Competitive Landscape</div>
+    <h2 class="section-title fade-up">The Only Framework<br><span class="gradient-text">Built for Production</span></h2>
+    <p class="section-subtitle fade-up">Other frameworks require you to build governance. AgentFlow includes it.</p>
+
+    <div class="comparison-wrap fade-up">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Enterprise Capability</th>
+            <th>AgentFlow</th>
+            <th>LangChain</th>
+            <th>CrewAI</th>
+            <th>AutoGen</th>
+            <th>Semantic Kernel</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Built-in Data Provenance</td><td class="c-yes">&#x2713;</td><td class="c-partial">~</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td></tr>
+          <tr><td>Visual Agent Designer</td><td class="c-yes">&#x2713;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td></tr>
+          <tr><td>Native Clustering / HA</td><td class="c-yes">&#x2713;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td></tr>
+          <tr><td>Back-pressure / Flow Control</td><td class="c-yes">&#x2713;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td></tr>
+          <tr><td>Human-in-the-Loop (Native)</td><td class="c-yes">&#x2713;</td><td class="c-partial">~</td><td class="c-no">&#x2717;</td><td class="c-partial">~</td><td class="c-no">&#x2717;</td></tr>
+          <tr><td>Guardrails Processor</td><td class="c-yes">&#x2713;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-partial">~</td></tr>
+          <tr><td>Token / Cost Budget Enforcement</td><td class="c-yes">&#x2713;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td></tr>
+          <tr><td>Agent Version Control</td><td class="c-yes">&#x2713;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td></tr>
+          <tr><td>PII Detection Built-in</td><td class="c-yes">&#x2713;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td></tr>
+          <tr><td>Tool Sandboxing</td><td class="c-yes">&#x2713;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-partial">~</td><td class="c-no">&#x2717;</td></tr>
+          <tr><td>Production-Ready Runtime</td><td class="c-yes">&#x2713;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-partial">~</td></tr>
+          <tr><td>10+ Year Enterprise Track Record</td><td class="c-yes">&#x2713;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="text-align: center; color: var(--text-dim); font-size: 0.75rem; margin-top: 1rem;">
+      <span class="c-yes" style="font-size: 0.85rem;">&#x2713;</span> = Native &nbsp;&nbsp;
+      <span class="c-partial" style="font-size: 0.85rem;">~</span> = Partial / Requires Add-on &nbsp;&nbsp;
+      <span class="c-no" style="font-size: 0.85rem;">&#x2717;</span> = Not Available
+    </p>
+  </div>
+</section>
+
+<!-- ===================== USE CASES ===================== -->
+<section class="section" id="usecases">
+  <div class="container">
+    <div class="section-label fade-up">Use Cases</div>
+    <h2 class="section-title fade-up">From Concept to Production<br><span class="gradient-text">in Days, Not Months</span></h2>
+    <p class="section-subtitle fade-up">AgentFlow supports any multi-agent workflow pattern. Here are four enterprise use cases running in production today.</p>
+
+    <div class="tabs fade-up" id="uc-tabs">
+      <button class="tab-btn active" data-tab="uc-research">Research Pipeline</button>
+      <button class="tab-btn" data-tab="uc-support">Customer Support</button>
+      <button class="tab-btn" data-tab="uc-compliance">Compliance Review</button>
+      <button class="tab-btn" data-tab="uc-codegen">Code Generation</button>
+    </div>
+
+    <div class="tab-panel active" id="uc-research">
+      <div class="usecase-content fade-up">
+        <div class="usecase-flow">
+          <div class="usecase-step"><span class="step-color" style="background: var(--router);"></span> Kafka Intake &mdash; Receive research request</div>
+          <div class="usecase-arrow">&darr;</div>
+          <div class="usecase-step"><span class="step-color" style="background: var(--planner);"></span> Supervisor Agent &mdash; Decompose into subtasks</div>
+          <div class="usecase-arrow">&darr; fan-out</div>
+          <div class="usecase-step"><span class="step-color" style="background: var(--tool);"></span> Web Search Agent + Data Query Agent + Doc Reader Agent</div>
+          <div class="usecase-arrow">&darr; aggregate</div>
+          <div class="usecase-step"><span class="step-color" style="background: var(--llm);"></span> Analyst Agent &mdash; Synthesize findings</div>
+          <div class="usecase-arrow">&darr;</div>
+          <div class="usecase-step"><span class="step-color" style="background: var(--hitl);"></span> Human Approval &mdash; Review before publish</div>
+          <div class="usecase-arrow">&darr;</div>
+          <div class="usecase-step"><span class="step-color" style="background: var(--success);"></span> Publish to Kafka / S3 / Email</div>
+        </div>
+        <div class="usecase-text">
+          <h4>Automated Research Pipeline</h4>
+          <p>A supervisor agent receives research requests via Kafka, decomposes them into parallel search tasks, dispatches specialist agents to gather data from multiple sources, then aggregates and synthesizes findings into a polished report. A human reviews and approves before publication.</p>
+          <p style="margin-top: 1rem;"><strong>Pattern:</strong> Supervisor / Worker with Human-in-the-Loop gate</p>
+          <p><strong>Agents:</strong> 5 (Supervisor, Web Search, Data Query, Doc Reader, Analyst)</p>
+          <p><strong>Guardrails:</strong> PII redaction, source verification, cost ceiling per query</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="uc-support">
+      <div class="usecase-content fade-up">
+        <div class="usecase-flow">
+          <div class="usecase-step"><span class="step-color" style="background: var(--router);"></span> API Intake &mdash; Receive support ticket</div>
+          <div class="usecase-arrow">&darr;</div>
+          <div class="usecase-step"><span class="step-color" style="background: var(--llm);"></span> Triage Agent &mdash; Classify and prioritize</div>
+          <div class="usecase-arrow">&darr; route</div>
+          <div class="usecase-step"><span class="step-color" style="background: var(--tool);"></span> Specialist Agent &mdash; Billing / Technical / Account</div>
+          <div class="usecase-arrow">&darr;</div>
+          <div class="usecase-step"><span class="step-color" style="background: var(--guard);"></span> Guardrails &mdash; Validate response quality</div>
+          <div class="usecase-arrow">&darr;</div>
+          <div class="usecase-step"><span class="step-color" style="background: var(--hitl);"></span> Escalation &mdash; HITL for edge cases</div>
+        </div>
+        <div class="usecase-text">
+          <h4>Customer Support Triage</h4>
+          <p>Incoming support tickets are classified by a triage agent and routed to specialized agents (billing, technical, account). Each specialist has access to relevant tools (CRM, knowledge base, order system) and guardrails ensure response quality before delivery.</p>
+          <p style="margin-top: 1rem;"><strong>Pattern:</strong> Sequential Pipeline with Router</p>
+          <p><strong>Agents:</strong> 4 (Triage, Billing, Technical, Account)</p>
+          <p><strong>Guardrails:</strong> Tone checking, PII masking, escalation triggers</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="uc-compliance">
+      <div class="usecase-content fade-up">
+        <div class="usecase-flow">
+          <div class="usecase-step"><span class="step-color" style="background: var(--memory);"></span> Document Ingestion &mdash; S3 / SharePoint</div>
+          <div class="usecase-arrow">&darr;</div>
+          <div class="usecase-step"><span class="step-color" style="background: var(--planner);"></span> Splitter &mdash; Chunk documents by section</div>
+          <div class="usecase-arrow">&darr; fan-out</div>
+          <div class="usecase-step"><span class="step-color" style="background: var(--llm);"></span> Compliance Analyzers (parallel)</div>
+          <div class="usecase-arrow">&darr; aggregate</div>
+          <div class="usecase-step"><span class="step-color" style="background: var(--guard);"></span> PII Redaction + Finding Validation</div>
+          <div class="usecase-arrow">&darr;</div>
+          <div class="usecase-step"><span class="step-color" style="background: var(--hitl);"></span> Legal Team Approval</div>
+        </div>
+        <div class="usecase-text">
+          <h4>Compliance Document Review</h4>
+          <p>Large compliance documents are chunked and analyzed in parallel by specialized agents. Findings are aggregated, PII is automatically redacted, and a compliance report is generated for legal team review before filing.</p>
+          <p style="margin-top: 1rem;"><strong>Pattern:</strong> MapReduce Fan-out with HITL</p>
+          <p><strong>Agents:</strong> 3 (Splitter, Compliance Analyzer, Report Generator)</p>
+          <p><strong>Guardrails:</strong> PII redaction, confidentiality classification, audit logging</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="uc-codegen">
+      <div class="usecase-content fade-up">
+        <div class="usecase-flow">
+          <div class="usecase-step"><span class="step-color" style="background: var(--planner);"></span> Task Planner &mdash; Decompose feature request</div>
+          <div class="usecase-arrow">&darr;</div>
+          <div class="usecase-step"><span class="step-color" style="background: var(--llm);"></span> Code Generator Agent &mdash; Write implementation</div>
+          <div class="usecase-arrow">&darr;</div>
+          <div class="usecase-step"><span class="step-color" style="background: var(--router);"></span> Code Review Agent &mdash; Quality + style check</div>
+          <div class="usecase-arrow">&darr;</div>
+          <div class="usecase-step"><span class="step-color" style="background: var(--guard);"></span> Security Scan &mdash; Vulnerability detection</div>
+          <div class="usecase-arrow">&darr;</div>
+          <div class="usecase-step"><span class="step-color" style="background: var(--tool);"></span> Test Runner &mdash; Execute test suite</div>
+        </div>
+        <div class="usecase-text">
+          <h4>Code Generation &amp; Review</h4>
+          <p>Feature requests are decomposed by a planner, code is generated by a specialist agent, then reviewed by a second agent using the debate pattern. Security scanning guardrails catch vulnerabilities before code is merged.</p>
+          <p style="margin-top: 1rem;"><strong>Pattern:</strong> Sequential + Debate for code review</p>
+          <p><strong>Agents:</strong> 4 (Planner, Generator, Reviewer, Security Scanner)</p>
+          <p><strong>Guardrails:</strong> No secrets in code, dependency vulnerability checks, test coverage</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== DEPLOYMENT ===================== -->
+<section class="section" id="deploy" style="background: rgba(16,185,129,0.02);">
+  <div class="container">
+    <div class="section-label fade-up" style="color: var(--planner);">Deployment</div>
+    <h2 class="section-title fade-up">Laptop to Cluster.<br><span class="gradient-text">Zero Code Changes.</span></h2>
+    <p class="section-subtitle fade-up">The same agent definition runs everywhere. No re-architecture required.</p>
+
+    <div class="deploy-stages fade-up">
+      <div class="deploy-card">
+        <div class="deploy-icon">&#x1F4BB;</div>
+        <h4>Development</h4>
+        <p>Single NiFi instance. Drag-and-drop agent design in the 3D UI. Immediate iteration with real-time provenance.</p>
+      </div>
+      <div class="deploy-card" style="border-color: rgba(124,58,237,0.2);">
+        <div class="deploy-icon">&#x1F4E6;</div>
+        <h4>Staging</h4>
+        <p>FlowSync versioning. Promoted agent blueprints with full diff history. Integration testing with real LLM APIs.</p>
+      </div>
+      <div class="deploy-card" style="border-color: rgba(16,185,129,0.2);">
+        <div class="deploy-icon">&#x1F680;</div>
+        <h4>Production</h4>
+        <p>Multi-node NiFi cluster with ZooKeeper. Prometheus + Grafana monitoring. Auto-scaling agent workloads across nodes.</p>
+      </div>
+    </div>
+
+    <h3 class="fade-up" style="font-size: 1.2rem; font-weight: 700; margin-bottom: 1.25rem;">Technology Stack</h3>
+    <div class="tech-grid fade-up">
+      <div class="tech-item"><div class="tech-layer">Runtime</div><div class="tech-name">Apache NiFi 2.x</div></div>
+      <div class="tech-item"><div class="tech-layer">Language</div><div class="tech-name">Java 21+</div></div>
+      <div class="tech-item"><div class="tech-layer">3D Frontend</div><div class="tech-name">React Three Fiber</div></div>
+      <div class="tech-item"><div class="tech-layer">State</div><div class="tech-name">Zustand + TypeScript</div></div>
+      <div class="tech-item"><div class="tech-layer">LLM Providers</div><div class="tech-name">Anthropic, OpenAI, Bedrock</div></div>
+      <div class="tech-item"><div class="tech-layer">Local LLM</div><div class="tech-name">Ollama</div></div>
+      <div class="tech-item"><div class="tech-layer">Vector DB</div><div class="tech-name">Pinecone / ChromaDB</div></div>
+      <div class="tech-item"><div class="tech-layer">Messaging</div><div class="tech-name">Apache Kafka</div></div>
+      <div class="tech-item"><div class="tech-layer">Caching</div><div class="tech-name">Redis</div></div>
+      <div class="tech-item"><div class="tech-layer">Secrets</div><div class="tech-name">HashiCorp Vault</div></div>
+      <div class="tech-item"><div class="tech-layer">Monitoring</div><div class="tech-name">Prometheus + Grafana</div></div>
+      <div class="tech-item"><div class="tech-layer">Sandboxing</div><div class="tech-name">Docker / gVisor</div></div>
+      <div class="tech-item"><div class="tech-layer">Coordination</div><div class="tech-name">Apache ZooKeeper</div></div>
+      <div class="tech-item"><div class="tech-layer">Versioning</div><div class="tech-name">FlowSync + Git</div></div>
+      <div class="tech-item"><div class="tech-layer">Observability</div><div class="tech-name">NiFi Provenance</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CTA ===================== -->
+<section class="cta-section">
+  <div class="container">
+    <h2 class="fade-up">Ready to Deploy AI Agents<br><span class="gradient-text">Your CISO Will Approve?</span></h2>
+    <p class="fade-up">Stop building governance from scratch. Start with the only AI agent platform that includes enterprise infrastructure by default.</p>
+    <div class="hero-ctas fade-up">
+      <a href="mailto:contact@agentflow.dev" class="btn-primary">Schedule a Demo &rarr;</a>
+      <a href="architecture.html" class="btn-ghost">Download Architecture Guide</a>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FOOTER ===================== -->
+<footer class="footer">
+  AgentFlow v0.1 &mdash; Enterprise AI Agent Orchestration on Apache NiFi &mdash;
+  <a href="https://github.com/bjkolly/agentflow-nifi">GitHub</a>
+</footer>
+
+<!-- ===================== SCRIPTS ===================== -->
+<script>
+// Scroll-triggered fade-up animations
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+// Tabs
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tabId = btn.dataset.tab;
+    const tabGroup = btn.closest('.section') || btn.closest('section');
+    tabGroup.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    tabGroup.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(tabId).classList.add('active');
+  });
+});
+
+// Smooth scroll for nav links
+document.querySelectorAll('.nav-links a').forEach(link => {
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    const target = document.querySelector(link.getAttribute('href'));
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+</script>
+</body>
+</html>
