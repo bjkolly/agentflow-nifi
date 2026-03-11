@@ -9,13 +9,21 @@ import com.agentflow.nifi.services.GuardrailsService;
 import com.agentflow.nifi.services.ToolRegistryService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
+import org.apache.nifi.annotation.behavior.ReadsAttributes;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -26,39 +34,72 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Executes tool/function calls requested by the LLM. Reads tool call information
  * from the FlowFile attributes (set by {@link LLMInferenceProcessor}), executes
  * each tool via the {@link ToolRegistryService}, and writes the results back.
+ *
+ * <h3>Best Practices (from Foundatation Configuration)</h3>
+ * <ul>
+ *   <li>Schedule at 0 sec (event-driven) — triggers immediately when FlowFiles arrive</li>
+ *   <li>Penalty duration: 30 sec, Yield duration: 1 sec</li>
+ *   <li>This is an I/O-bound processor — run duration should be 0ms</li>
+ *   <li>Configure retry count of 10 with YIELD_PROCESSOR backoff (2 min max)
+ *       on the 'failure' relationship</li>
+ *   <li>Always configure a GuardrailsService for production deployments</li>
+ *   <li>Connect 'success' output back to the LLMInferenceProcessor for the next
+ *       agent loop iteration</li>
+ *   <li>Connect 'requires_human' to a HumanInTheLoopProcessor</li>
+ * </ul>
  */
-@Tags({"agentflow", "ai", "tool", "function", "executor", "mcp"})
+@Tags({"agentflow", "ai", "tool", "function", "executor", "mcp", "foundatation"})
 @CapabilityDescription(
         "Executes tool/function calls requested by the LLM during an agent loop. " +
         "Reads tool call definitions from the 'llm.tool_calls' FlowFile attribute, " +
         "executes each tool via the configured ToolRegistryService, and writes " +
-        "results back to the FlowFile for the next LLM iteration."
+        "results back to the FlowFile for the next LLM iteration. Optionally validates " +
+        "tool actions against a GuardrailsService before execution. " +
+        "Recommended: penalty 30 sec, yield 1 sec, retry 10 with YIELD_PROCESSOR on failure."
 )
+@SeeAlso({LLMInferenceProcessor.class, GuardrailsEnforcerProcessor.class, HumanInTheLoopProcessor.class})
+@EventDriven
+@SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
+@ReadsAttributes({
+    @ReadsAttribute(attribute = "llm.tool_calls", description = "JSON array of tool calls from the LLM"),
+    @ReadsAttribute(attribute = "task.id", description = "The unique task identifier"),
+    @ReadsAttribute(attribute = "task.origin_agent", description = "The agent that originated the task")
+})
 @WritesAttributes({
     @WritesAttribute(attribute = "tool.result", description = "JSON result from the last tool execution"),
     @WritesAttribute(attribute = "tool.name", description = "Name of the last tool executed"),
-    @WritesAttribute(attribute = "tool.execution_time_ms", description = "Execution time in milliseconds")
+    @WritesAttribute(attribute = "tool.execution_time_ms", description = "Execution time in milliseconds"),
+    @WritesAttribute(attribute = "tool.total_calls", description = "Total number of tool calls executed in this invocation"),
+    @WritesAttribute(attribute = "tool.error", description = "Error message if tool execution failed"),
+    @WritesAttribute(attribute = "tool.blocked_reason", description = "Reason if tool was blocked by guardrails"),
+    @WritesAttribute(attribute = "error_stage", description = "Set to 'tool-executor' on failure for error routing")
 })
 public class ToolExecutorProcessor extends AbstractProcessor {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final String ERROR_STAGE = "tool-executor";
+
+    // Metrics counters
+    private final AtomicLong totalExecutions = new AtomicLong(0);
+    private final AtomicLong totalErrors = new AtomicLong(0);
+    private final AtomicLong totalBlocked = new AtomicLong(0);
 
     public static final PropertyDescriptor TOOL_REGISTRY = new PropertyDescriptor.Builder()
             .name("tool-registry-service")
             .displayName("Tool Registry Service")
-            .description("The controller service providing tool registration and execution")
+            .description("The controller service providing tool registration and execution. "
+                    + "Define at root Process Group level for shared access across agents.")
             .required(true)
             .identifiesControllerService(ToolRegistryService.class)
             .build();
@@ -66,58 +107,61 @@ public class ToolExecutorProcessor extends AbstractProcessor {
     public static final PropertyDescriptor GUARDRAILS_SERVICE = new PropertyDescriptor.Builder()
             .name("guardrails-service")
             .displayName("Guardrails Service")
-            .description("Optional guardrails service to validate tool actions before execution")
+            .description("Optional guardrails service to validate tool actions before execution. "
+                    + "Strongly recommended for production deployments. When set, each tool call "
+                    + "is checked against the guardrails policy before execution.")
             .required(false)
             .identifiesControllerService(GuardrailsService.class)
             .build();
 
     public static final PropertyDescriptor EXECUTION_TIMEOUT = new PropertyDescriptor.Builder()
             .name("execution-timeout")
-            .displayName("Execution Timeout (seconds)")
-            .description("Maximum time to wait for a single tool execution")
+            .displayName("Execution Timeout")
+            .description("Maximum time to wait for a single tool execution. "
+                    + "Best practice: 30 secs for HTTP tools, longer for database/compute tools.")
             .required(false)
-            .defaultValue("30")
+            .defaultValue("30 secs")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor MAX_TOOL_CALLS_PER_INVOCATION = new PropertyDescriptor.Builder()
+            .name("max-tool-calls")
+            .displayName("Max Tool Calls Per Invocation")
+            .description("Maximum number of tool calls to execute in a single processor invocation. "
+                    + "Prevents runaway tool execution from a single LLM response.")
+            .required(false)
+            .defaultValue("10")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("Tool execution completed successfully — route back to LLM")
+            .description("Tool execution completed successfully — route back to LLM for next iteration.")
             .build();
 
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("Tool execution failed")
+            .description("Tool execution failed. Configure retry count 10, YIELD_PROCESSOR, max 2 mins.")
             .build();
 
     public static final Relationship REL_REQUIRES_HUMAN = new Relationship.Builder()
             .name("requires_human")
-            .description("Tool action requires human approval before execution")
+            .description("Tool action requires human approval before execution. "
+                    + "Connect to a HumanInTheLoopProcessor.")
             .build();
 
     public static final Relationship REL_UNAUTHORIZED = new Relationship.Builder()
             .name("unauthorized")
-            .description("Tool action was blocked by guardrails")
+            .description("Tool action was blocked by guardrails policy.")
             .build();
 
-    private List<PropertyDescriptor> descriptors;
-    private Set<Relationship> relationships;
+    private final List<PropertyDescriptor> descriptors = List.of(
+            TOOL_REGISTRY, GUARDRAILS_SERVICE, EXECUTION_TIMEOUT, MAX_TOOL_CALLS_PER_INVOCATION
+    );
 
-    @Override
-    protected void init(final org.apache.nifi.processor.ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(TOOL_REGISTRY);
-        descriptors.add(GUARDRAILS_SERVICE);
-        descriptors.add(EXECUTION_TIMEOUT);
-        this.descriptors = Collections.unmodifiableList(descriptors);
-
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        relationships.add(REL_REQUIRES_HUMAN);
-        relationships.add(REL_UNAUTHORIZED);
-        this.relationships = Collections.unmodifiableSet(relationships);
-    }
+    private final Set<Relationship> relationships = Set.of(
+            REL_SUCCESS, REL_FAILURE, REL_REQUIRES_HUMAN, REL_UNAUTHORIZED
+    );
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -127,6 +171,22 @@ public class ToolExecutorProcessor extends AbstractProcessor {
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return descriptors;
+    }
+
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+        totalExecutions.set(0);
+        totalErrors.set(0);
+        totalBlocked.set(0);
+        getLogger().info("ToolExecutorProcessor scheduled — timeout: {}, max calls: {}",
+                context.getProperty(EXECUTION_TIMEOUT).getValue(),
+                context.getProperty(MAX_TOOL_CALLS_PER_INVOCATION).getValue());
+    }
+
+    @OnStopped
+    public void onStopped() {
+        getLogger().info("ToolExecutorProcessor stopped — total executions: {}, errors: {}, blocked: {}",
+                totalExecutions.get(), totalErrors.get(), totalBlocked.get());
     }
 
     @Override
@@ -143,43 +203,63 @@ public class ToolExecutorProcessor extends AbstractProcessor {
                 ? context.getProperty(GUARDRAILS_SERVICE).asControllerService(GuardrailsService.class)
                 : null;
 
+        final int maxToolCalls = context.getProperty(MAX_TOOL_CALLS_PER_INVOCATION).asInteger();
+
         // Read tool calls from FlowFile attribute
-        String toolCallsJson = flowFile.getAttribute("llm.tool_calls");
+        final String toolCallsJson = flowFile.getAttribute("llm.tool_calls");
         if (toolCallsJson == null || toolCallsJson.isEmpty()) {
-            getLogger().warn("No tool calls found in FlowFile attributes");
+            getLogger().warn("No tool calls found in FlowFile attributes for task {}",
+                    flowFile.getAttribute("task.id"));
+            flowFile = session.putAttribute(flowFile, "tool.error", "No tool calls in FlowFile attributes");
+            flowFile = session.putAttribute(flowFile, "error_stage", ERROR_STAGE);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
         try {
-            List<Map<String, Object>> toolCalls = objectMapper.readValue(
+            final List<Map<String, Object>> toolCalls = objectMapper.readValue(
                     toolCallsJson, new TypeReference<>() {});
 
-            List<Map<String, Object>> results = new ArrayList<>();
+            // Enforce max tool calls limit
+            if (toolCalls.size() > maxToolCalls) {
+                getLogger().warn("Tool call count {} exceeds max {} for task {}",
+                        toolCalls.size(), maxToolCalls, flowFile.getAttribute("task.id"));
+                flowFile = session.putAttribute(flowFile, "tool.error",
+                        "Too many tool calls: " + toolCalls.size() + " > " + maxToolCalls);
+                flowFile = session.putAttribute(flowFile, "error_stage", ERROR_STAGE);
+                session.transfer(flowFile, REL_FAILURE);
+                return;
+            }
+
+            final List<Map<String, Object>> results = new ArrayList<>();
 
             for (Map<String, Object> toolCall : toolCalls) {
-                String toolName = (String) toolCall.get("name");
-                String arguments = objectMapper.writeValueAsString(toolCall.get("arguments"));
+                final String toolName = (String) toolCall.get("name");
+                final String arguments = objectMapper.writeValueAsString(toolCall.get("arguments"));
 
                 // Check guardrails if configured
                 if (guardrails != null) {
-                    Map<String, String> actionContext = new HashMap<>();
+                    final Map<String, String> actionContext = new HashMap<>();
                     actionContext.put("agent.name", flowFile.getAttribute("task.origin_agent"));
                     actionContext.put("task.id", flowFile.getAttribute("task.id"));
 
                     if (!guardrails.isActionPermitted(toolName, actionContext)) {
-                        getLogger().warn("Tool '{}' blocked by guardrails", toolName);
+                        getLogger().warn("Tool '{}' blocked by guardrails for task {}",
+                                toolName, flowFile.getAttribute("task.id"));
+                        totalBlocked.incrementAndGet();
                         flowFile = session.putAttribute(flowFile, "tool.name", toolName);
                         flowFile = session.putAttribute(flowFile, "tool.blocked_reason", "guardrails_violation");
+                        flowFile = session.putAttribute(flowFile, "error_stage", ERROR_STAGE);
                         session.transfer(flowFile, REL_UNAUTHORIZED);
                         return;
                     }
                 }
 
                 // Execute the tool
-                long startTime = System.currentTimeMillis();
-                String result = toolRegistry.executeTool(toolName, arguments);
-                long executionTime = System.currentTimeMillis() - startTime;
+                final long startTime = System.currentTimeMillis();
+                final String result = toolRegistry.executeTool(toolName, arguments);
+                final long executionTime = System.currentTimeMillis() - startTime;
+                totalExecutions.incrementAndGet();
 
                 results.add(Map.of(
                         "tool_name", toolName,
@@ -189,28 +269,39 @@ public class ToolExecutorProcessor extends AbstractProcessor {
 
                 flowFile = session.putAttribute(flowFile, "tool.name", toolName);
                 flowFile = session.putAttribute(flowFile, "tool.result", result);
-                flowFile = session.putAttribute(flowFile, "tool.execution_time_ms", String.valueOf(executionTime));
+                flowFile = session.putAttribute(flowFile, "tool.execution_time_ms",
+                        String.valueOf(executionTime));
 
-                getLogger().debug("Tool '{}' executed in {}ms", toolName, executionTime);
+                getLogger().debug("Tool '{}' executed in {}ms for task {}",
+                        toolName, executionTime, flowFile.getAttribute("task.id"));
             }
 
-            // Append tool results to the FlowFile content (conversation history)
-            String resultsJson = objectMapper.writeValueAsString(results);
-            flowFile = session.write(flowFile, out -> {
-                // TODO: Properly merge tool results into the conversation history
-                out.write(resultsJson.getBytes(StandardCharsets.UTF_8));
-            });
+            flowFile = session.putAttribute(flowFile, "tool.total_calls",
+                    String.valueOf(results.size()));
+
+            // Write tool results to FlowFile content for next LLM iteration
+            final String resultsJson = objectMapper.writeValueAsString(results);
+            flowFile = session.write(flowFile, out ->
+                    out.write(resultsJson.getBytes(StandardCharsets.UTF_8)));
 
             session.transfer(flowFile, REL_SUCCESS);
+            session.getProvenanceReporter().route(flowFile, REL_SUCCESS.getName(),
+                    "Executed " + results.size() + " tool call(s)");
 
         } catch (ToolRegistryService.ToolExecutionException e) {
-            getLogger().error("Tool execution failed: {} - {}", e.getToolName(), e.getMessage());
+            totalErrors.incrementAndGet();
+            getLogger().error("Tool execution failed: {} — {}", e.getToolName(), e.getMessage());
             flowFile = session.putAttribute(flowFile, "tool.error", e.getMessage());
             flowFile = session.putAttribute(flowFile, "tool.name", e.getToolName());
+            flowFile = session.putAttribute(flowFile, "error_stage", ERROR_STAGE);
             session.transfer(flowFile, REL_FAILURE);
         } catch (Exception e) {
-            getLogger().error("Unexpected error in tool execution", e);
-            flowFile = session.putAttribute(flowFile, "tool.error", e.getMessage());
+            totalErrors.incrementAndGet();
+            getLogger().error("Unexpected error in tool execution for task {}",
+                    flowFile.getAttribute("task.id"), e);
+            flowFile = session.putAttribute(flowFile, "tool.error",
+                    e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
+            flowFile = session.putAttribute(flowFile, "error_stage", ERROR_STAGE);
             session.transfer(flowFile, REL_FAILURE);
         }
     }
