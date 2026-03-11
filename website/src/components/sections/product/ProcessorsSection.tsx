@@ -96,7 +96,7 @@ export default function ProcessorsSection() {
               100&apos;s Out of Box Processors
             </h3>
             <p className="text-text-muted text-center max-w-2xl mx-auto mb-10 text-sm">
-              Foundatation is ready with hundreds of production-ready processors for data acquisition, transformation, and routing — purpose-built for turning legacy and siloed data into AI-ready pipelines.
+              Foundatation is ready with hundreds of production-ready processors for data acquisition, transformation, and routing — purpose-built embedded with 10&apos;s of years of best practices for turning legacy and siloed data into AI-ready pipelines.
             </p>
           </FadeUp>
 
