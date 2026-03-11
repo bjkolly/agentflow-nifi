@@ -40,22 +40,22 @@ export default function DataFoundationSection() {
         </FadeUp>
 
         {/* Data Journey Stages — 4-column grid with arrow connectors */}
-        <div className="grid grid-cols-1 md:grid-cols-7 gap-4 items-stretch mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] gap-2 items-stretch mb-16">
           {DATA_JOURNEY_STAGES.map((stage, i) => (
             <div key={stage.title} className="contents">
               <FadeUp delay={0.15 + i * 0.1} className="md:col-span-1">
                 <GlassCard
-                  className="p-6 h-full flex flex-col items-center text-center"
+                  className="p-4 h-full flex flex-col items-center text-center"
                   borderColor={stage.color}
                 >
-                  <div className="text-4xl mb-4">{stage.icon}</div>
+                  <div className="text-3xl mb-2">{stage.icon}</div>
                   <h3
-                    className="text-lg font-bold mb-3"
+                    className="text-base font-bold mb-2"
                     style={{ color: stage.color }}
                   >
                     {stage.title}
                   </h3>
-                  <p className="text-sm text-text-muted leading-relaxed">
+                  <p className="text-xs text-text-muted leading-relaxed">
                     {stage.description}
                   </p>
                 </GlassCard>
@@ -63,8 +63,8 @@ export default function DataFoundationSection() {
 
               {/* Arrow connector — visible on md+ between cards */}
               {i < DATA_JOURNEY_STAGES.length - 1 && (
-                <div className="hidden md:flex items-center justify-center md:col-span-1">
-                  <span className="text-2xl text-text-muted/50 select-none">
+                <div className="hidden md:flex items-center justify-center px-1">
+                  <span className="text-xl text-text-muted/50 select-none">
                     &rarr;
                   </span>
                 </div>
