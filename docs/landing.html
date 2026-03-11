@@ -498,6 +498,80 @@
     color: var(--guard);
   }
 
+  /* ==================== DATA FOUNDATION ==================== */
+  .foundation-pipeline {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    position: relative;
+  }
+  .foundation-card {
+    padding: 2rem 1.5rem;
+    border-radius: 14px;
+    background: var(--surface);
+    border: 1px solid;
+    text-align: center;
+    position: relative;
+    transition: all 0.3s;
+  }
+  .foundation-card:hover { transform: translateY(-3px); }
+  .foundation-card .card-step {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 0.5rem;
+  }
+  .foundation-card h4 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+  .foundation-card p {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .foundation-card .card-icon {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+  }
+  .foundation-arrow {
+    display: none;
+  }
+  @media (min-width: 769px) {
+    .foundation-card::after {
+      content: '\2192';
+      position: absolute;
+      right: -1.1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.4rem;
+      color: var(--text-dim);
+      font-weight: 700;
+      z-index: 2;
+    }
+    .foundation-card:last-child::after {
+      display: none;
+    }
+  }
+  .foundation-callout {
+    padding: 1.5rem 2rem;
+    border-radius: 12px;
+    border: 2px solid rgba(245,158,11,0.3);
+    background: rgba(245,158,11,0.04);
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--tool);
+    letter-spacing: 0.5px;
+  }
+  @media (max-width: 768px) {
+    .foundation-pipeline { grid-template-columns: 1fr; }
+    .foundation-card::after { display: none; }
+  }
+
   /* ==================== COMPARISON TABLE ==================== */
   .comparison-wrap { overflow-x: auto; border-radius: 14px; border: 1px solid var(--border); }
   .comparison-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; min-width: 700px; }
@@ -638,6 +712,7 @@
   <div class="nav-brand">AgentFlow</div>
   <div class="nav-links">
     <a href="#problem">The Problem</a>
+    <a href="#data-foundation">Data Foundation</a>
     <a href="#foundation">Why NiFi</a>
     <a href="#architecture">Architecture</a>
     <a href="#capabilities">Capabilities</a>
@@ -705,8 +780,48 @@
         <div class="problem-item"><span class="icon">&#x2713;</span> Back-pressure prevents cost overruns by design</div>
         <div class="problem-item"><span class="icon">&#x2713;</span> Built-in compliance for FedRAMP / HIPAA / SOX</div>
         <div class="problem-item"><span class="icon">&#x2713;</span> Visual agent design that non-developers can audit</div>
-        <div class="problem-item"><span class="icon">&#x2713;</span> Versioned agent blueprints with dev &rarr; prod promotion</div>
+        <div class="problem-item"><span class="icon">&#x2713;</span> FlowSync deployment library &mdash; agents and pipelines across all tiers</div>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== DATA FOUNDATION ===================== -->
+<section class="section" id="data-foundation" style="background: rgba(245,158,11,0.02);">
+  <div class="container">
+    <div class="section-label fade-up" style="color: var(--tool);">THE FOUNDATATION DIFFERENCE</div>
+    <h2 class="section-title fade-up">Your Data Isn't Ready for AI.<br><span class="gradient-text">We Fix That.</span></h2>
+    <p class="section-subtitle fade-up">Most agentic AI companies need clean, API-ready data. We start where your data actually is.</p>
+
+    <div class="foundation-pipeline fade-up">
+      <div class="foundation-card" style="border-color: rgba(59,130,246,0.3);">
+        <div class="card-icon">&#x1F4E5;</div>
+        <div class="card-step" style="color: var(--router);">Stage 1</div>
+        <h4 style="color: var(--router);">Data Acquisition</h4>
+        <p>Connect to any enterprise data source &mdash; databases, APIs, file systems, SaaS platforms, and legacy systems.</p>
+      </div>
+      <div class="foundation-card" style="border-color: rgba(124,58,237,0.3);">
+        <div class="card-icon">&#x1F504;</div>
+        <div class="card-step" style="color: var(--llm);">Stage 2</div>
+        <h4 style="color: var(--llm);">Transformation</h4>
+        <p>Cleanse, reshape, and enrich raw data into usable formats. Handle schema evolution and data quality at scale.</p>
+      </div>
+      <div class="foundation-card" style="border-color: rgba(16,185,129,0.3);">
+        <div class="card-icon">&#x1F4CB;</div>
+        <div class="card-step" style="color: var(--planner);">Stage 3</div>
+        <h4 style="color: var(--planner);">Normalization</h4>
+        <p>Standardize schemas, deduplicate records, and reconcile data across disparate sources into a unified model.</p>
+      </div>
+      <div class="foundation-card" style="border-color: rgba(245,158,11,0.3);">
+        <div class="card-icon">&#x2728;</div>
+        <div class="card-step" style="color: var(--tool);">Stage 4</div>
+        <h4 style="color: var(--tool);">AI-Ready Data</h4>
+        <p>Vectorize, index, and optimize data for agent consumption. Production-ready for RAG, search, and reasoning.</p>
+      </div>
+    </div>
+
+    <div class="foundation-callout fade-up">
+      Delivered through Foundatation's Enterprise Scale Product Enabled Services
     </div>
   </div>
 </section>
@@ -750,7 +865,7 @@
           <tr><td>Back-pressure</td><td>Cost &amp; Rate Control</td><td>Agents cannot burn budgets or overwhelm downstream systems</td></tr>
           <tr><td>Connection Queue</td><td>Communication Channel</td><td>Buffered, observable messaging between agents</td></tr>
           <tr><td>Clustering</td><td>Horizontal Scale</td><td>Add nodes, not code changes &mdash; automatic workload distribution</td></tr>
-          <tr><td>FlowSync</td><td>Agent Version Control</td><td>dev &rarr; staging &rarr; prod with full diff history</td></tr>
+          <tr><td>FlowSync</td><td>Deployment &amp; Management Library</td><td>Manages agents and data pipelines across all tiers &mdash; reusable library of pieces and parts</td></tr>
         </tbody>
       </table>
     </div>
@@ -1062,7 +1177,7 @@
           <tr><td>Human-in-the-Loop (Native)</td><td class="c-yes">&#x2713;</td><td class="c-partial">~</td><td class="c-no">&#x2717;</td><td class="c-partial">~</td><td class="c-no">&#x2717;</td></tr>
           <tr><td>Guardrails Processor</td><td class="c-yes">&#x2713;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-partial">~</td></tr>
           <tr><td>Token / Cost Budget Enforcement</td><td class="c-yes">&#x2713;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td></tr>
-          <tr><td>Agent Version Control</td><td class="c-yes">&#x2713;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td></tr>
+          <tr><td>Deployment &amp; Mgmt Library</td><td class="c-yes">&#x2713;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td></tr>
           <tr><td>PII Detection Built-in</td><td class="c-yes">&#x2713;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td></tr>
           <tr><td>Tool Sandboxing</td><td class="c-yes">&#x2713;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-partial">~</td><td class="c-no">&#x2717;</td></tr>
           <tr><td>Production-Ready Runtime</td><td class="c-yes">&#x2713;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-no">&#x2717;</td><td class="c-partial">~</td></tr>
@@ -1204,7 +1319,7 @@
       <div class="deploy-card" style="border-color: rgba(124,58,237,0.2);">
         <div class="deploy-icon">&#x1F4E6;</div>
         <h4>Staging</h4>
-        <p>FlowSync versioning. Promoted agent blueprints with full diff history. Integration testing with real LLM APIs.</p>
+        <p>FlowSync manages deployment across all tiers &mdash; agent blueprints, data pipeline templates, and service configs. Integration testing with real LLM APIs.</p>
       </div>
       <div class="deploy-card" style="border-color: rgba(16,185,129,0.2);">
         <div class="deploy-icon">&#x1F680;</div>
@@ -1228,7 +1343,7 @@
       <div class="tech-item"><div class="tech-layer">Monitoring</div><div class="tech-name">Prometheus + Grafana</div></div>
       <div class="tech-item"><div class="tech-layer">Sandboxing</div><div class="tech-name">Docker / gVisor</div></div>
       <div class="tech-item"><div class="tech-layer">Coordination</div><div class="tech-name">Apache ZooKeeper</div></div>
-      <div class="tech-item"><div class="tech-layer">Versioning</div><div class="tech-name">FlowSync + Git</div></div>
+      <div class="tech-item"><div class="tech-layer">Deployment</div><div class="tech-name">FlowSync (spans all tiers)</div></div>
       <div class="tech-item"><div class="tech-layer">Observability</div><div class="tech-name">NiFi Provenance</div></div>
     </div>
   </div>

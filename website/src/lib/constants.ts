@@ -10,6 +10,8 @@ import type {
   DemoProcessor,
   DemoConnection,
   IndustryCard,
+  DataJourneyStage,
+  DataFoundationStat,
 } from '@/lib/types';
 
 /* ─── Processors ──────────────────────────────────────────────────────── */
@@ -161,9 +163,9 @@ export const NIFI_MAPPING: NifiMapping[] = [
   },
   {
     nifiConcept: 'FlowSync',
-    agentflowMapping: 'Agent Version Control',
+    agentflowMapping: 'Deployment & Management Library',
     whyItMatters:
-      'Version, promote, and rollback agent definitions across environments',
+      'Manages deployment of agents and data pipelines across all architecture tiers — a library of reusable pieces and parts',
   },
   {
     nifiConcept: 'Controller Service',
@@ -181,7 +183,7 @@ export const COMPARISON_DATA: ComparisonRow[] = [
   { capability: 'Native Clustering/HA', agentflow: 'yes', langchain: 'no', crewai: 'no', autogen: 'no', semanticKernel: 'no' },
   { capability: 'Back-pressure/Rate Control', agentflow: 'yes', langchain: 'no', crewai: 'no', autogen: 'no', semanticKernel: 'no' },
   { capability: 'Human-in-the-Loop', agentflow: 'yes', langchain: 'partial', crewai: 'no', autogen: 'partial', semanticKernel: 'no' },
-  { capability: 'Agent Version Control', agentflow: 'yes', langchain: 'no', crewai: 'no', autogen: 'no', semanticKernel: 'no' },
+  { capability: 'Deployment & Mgmt Library', agentflow: 'yes', langchain: 'no', crewai: 'no', autogen: 'no', semanticKernel: 'no' },
   { capability: 'Tool Sandboxing', agentflow: 'yes', langchain: 'no', crewai: 'no', autogen: 'partial', semanticKernel: 'no' },
   { capability: 'PII Detection/Redaction', agentflow: 'yes', langchain: 'no', crewai: 'no', autogen: 'no', semanticKernel: 'no' },
   { capability: 'Cost/Token Budgets', agentflow: 'yes', langchain: 'partial', crewai: 'no', autogen: 'no', semanticKernel: 'no' },
@@ -273,7 +275,7 @@ export const TECH_STACK: TechItem[] = [
   { layer: 'Coordination', name: 'Apache ZooKeeper' },
   { layer: 'Monitoring', name: 'Prometheus \u00b7 Grafana' },
   { layer: 'Sandboxing', name: 'Docker \u00b7 gVisor' },
-  { layer: 'Versioning', name: 'FlowSync \u00b7 Git' },
+  { layer: 'Deployment', name: 'FlowSync (spans all tiers)' },
   { layer: 'Frontend', name: 'React Three Fiber' },
   { layer: 'State Mgmt', name: 'Zustand' },
   { layer: 'Styling', name: 'Tailwind CSS' },
@@ -283,6 +285,11 @@ export const TECH_STACK: TechItem[] = [
 /* ─── Architecture Layers ──────────────────────────────────────────────── */
 
 export const ARCHITECTURE_LAYERS: ArchLayer[] = [
+  {
+    name: 'Data Foundation',
+    color: '#f59e0b',
+    pills: ['Data Acquisition', 'Transformation', 'Normalization', 'AI-Ready Data'],
+  },
   {
     name: 'Interface Layer',
     color: '#3b82f6',
@@ -324,10 +331,10 @@ export const DEPLOY_STAGES: DeployStage[] = [
     icon: '🧪',
     title: 'Staging',
     description:
-      'FlowSync for version control. CI/CD pipeline integration. Automated testing.',
+      'FlowSync manages deployment across all tiers — agent blueprints, data pipeline templates, and service configs.',
     items: [
-      'FlowSync',
-      'Versioned blueprints',
+      'FlowSync deployment library',
+      'Versioned blueprints & templates',
       'CI/CD integration',
       'Automated testing',
     ],
@@ -423,6 +430,45 @@ export const PROBLEM_ITEMS = {
     '10+ year production track record',
   ],
 };
+
+/* ─── Data Foundation Journey ─────────────────────────────────────── */
+
+export const DATA_JOURNEY_STAGES: DataJourneyStage[] = [
+  {
+    icon: '📥',
+    title: 'Data Acquisition',
+    color: '#3b82f6',
+    description:
+      'Connect to any data source — databases, APIs, file systems, streaming platforms, legacy systems, and unstructured repositories. No data left behind.',
+  },
+  {
+    icon: '🔄',
+    title: 'Transformation',
+    color: '#7c3aed',
+    description:
+      'Cleanse, enrich, and reshape raw data into consistent formats. Handle schema conflicts, data quality issues, and complex business logic at scale.',
+  },
+  {
+    icon: '⚖️',
+    title: 'Normalization',
+    color: '#10b981',
+    description:
+      'Standardize data across sources — unified schemas, consistent naming, deduplication, and entity resolution. One source of truth.',
+  },
+  {
+    icon: '🧠',
+    title: 'AI-Ready Data',
+    color: '#f59e0b',
+    description:
+      'Vectorized, indexed, and optimized data ready for LLM consumption, RAG pipelines, agent memory, and real-time AI inference.',
+  },
+];
+
+export const DATA_FOUNDATION_STATS: DataFoundationStat[] = [
+  { number: '100%', label: 'of Enterprise Data Sources Supported' },
+  { number: '4x', label: 'Faster Time to AI-Ready Data' },
+  { number: '0', label: 'Data Engineering Left to the Customer' },
+];
 
 /* ─── Navigation ───────────────────────────────────────────────────────── */
 

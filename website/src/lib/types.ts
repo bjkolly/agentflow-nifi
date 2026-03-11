@@ -70,3 +70,15 @@ export type IndustryCard = {
   description: string;
   color: string;
 };
+
+export type DataJourneyStage = {
+  icon: string;
+  title: string;
+  color: string;
+  description: string;
+};
+
+export type DataFoundationStat = {
+  number: string;
+  label: string;
+};

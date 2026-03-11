@@ -28,9 +28,10 @@ export default function AboutHero() {
 
           <FadeUp delay={0.2}>
             <p className="text-xl text-text-muted max-w-3xl mx-auto mb-8 leading-relaxed">
-              We believe every enterprise has the data foundation for AI — they just
-              need the right orchestration layer. AgentFlow transforms Apache NiFi
-              into the world&apos;s most powerful AI agent platform.
+              We believe every enterprise can harness AI — but most aren&apos;t data-ready.
+              Foundatation takes organizations on the complete journey: from scattered,
+              messy data to AI-ready pipelines and production agents. That&apos;s our
+              Enterprise Scale Product Enabled Services.
             </p>
           </FadeUp>
 

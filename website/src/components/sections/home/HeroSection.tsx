@@ -38,7 +38,7 @@ export default function HeroSection() {
 
             <FadeUp delay={0.1}>
               <p className="text-xl sm:text-2xl text-text-muted max-w-2xl mb-10 leading-relaxed">
-                Enterprise AI Agent Orchestration. Built on Apache NiFi. Governed by design.
+                Enterprise Scale Product Enabled Services — from data preparation to production AI agents. Built on Apache NiFi.
               </p>
             </FadeUp>
 

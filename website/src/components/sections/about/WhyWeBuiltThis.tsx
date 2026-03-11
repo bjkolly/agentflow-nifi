@@ -10,7 +10,7 @@ const REASONS = [
     title: 'The Data Foundation',
     color: '#3b82f6',
     description:
-      'Enterprises already invested billions in data infrastructure. NiFi is the proven backbone for data flow across 75%+ of Fortune 100. We build ON that foundation, not beside it.',
+      'Most enterprises have data scattered across hundreds of sources \u2014 messy, siloed, and nowhere near AI-ready. We saw that the real barrier to enterprise AI wasn\u2019t the models or frameworks. It was the data. Foundatation bridges that gap with end-to-end data acquisition, transformation, and normalization.',
   },
   {
     title: 'The Governance Gap',

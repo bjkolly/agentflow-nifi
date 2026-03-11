@@ -28,9 +28,9 @@ export default function SolutionsHero() {
         </FadeUp>
         <FadeUp delay={0.2}>
           <p className="text-xl text-text-muted mt-6 max-w-3xl mx-auto leading-relaxed">
-            Pre-built agent orchestration patterns for research, support, compliance, and
-            code generation. Proven across financial services, healthcare, defense, and
-            enterprise verticals.
+            End-to-end data preparation and agent orchestration — from raw enterprise data
+            to production AI agents. Proven across financial services, healthcare, defense,
+            and enterprise verticals.
           </p>
         </FadeUp>
         <FadeUp delay={0.3}>

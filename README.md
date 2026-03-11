@@ -4,6 +4,8 @@
 
 **AgentFlow** is an enterprise-grade Agentic AI orchestration platform built on Apache NiFi. It reimagines NiFi's dataflow paradigm — processors, process groups, connections, and FlowFiles — as the building blocks for composing, orchestrating, and governing autonomous AI agents at scale.
 
+Unlike other agentic AI companies that require clean, API-ready data, Foundatation provides end-to-end Enterprise Scale Product Enabled Services — from data acquisition and transformation through normalization and AI-ready preparation to production agent orchestration. Most enterprises have data scattered across hundreds of sources in messy, siloed formats. Foundatation takes them through the entire journey: **Data Acquisition → Transformation → Normalization → AI-Ready Data** — so organizations can move from raw enterprise data to production AI agents without needing a separate data engineering initiative.
+
 ---
 
 ## Why Apache NiFi?
@@ -20,7 +22,7 @@
 | Data Provenance        | Full audit trail of every agent action       |
 | Controller Service     | Shared resources (LLM clients, vector DBs)  |
 | Parameter Context      | Agent configuration (prompts, model, temp)   |
-| FlowSync          | Versioned agent blueprints                   |
+| FlowSync          | Deployment & management library (spans all tiers) |
 | Clustering             | Horizontal scaling of agent workloads        |
 | Bulletin Board         | Real-time agent error/status reporting       |
 
@@ -36,7 +38,7 @@ graph TD
         A1["AgentFlow 3D UI<br/><small>React Three Fiber + Zustand</small>"]
         A2["NiFi Canvas UI"]
         A3["REST API Gateway"]
-        A4["FlowSync<br/><small>Flow Versioning</small>"]
+        A4["FlowSync<br/><small>Deployment & Management Library</small>"]
     end
 
     subgraph NIFI["⚡ Agent Orchestration Layer — Apache NiFi Runtime"]
@@ -709,28 +711,35 @@ NiFi's built-in provenance gives you something no other agent framework has out 
 
 ## Key Product Differentiators
 
-### 1. Visual Agent Design
+### 1. Data Foundation Pipeline
+End-to-end data preparation delivered through Enterprise Scale Product Enabled Services. While other agentic AI platforms assume clean, API-ready data, AgentFlow handles the complete data lifecycle:
+- **Data Acquisition** — Connect to any enterprise data source (databases, APIs, file systems, SaaS platforms, legacy systems)
+- **Transformation** — Cleanse, reshape, and enrich raw data into usable formats
+- **Normalization** — Standardize schemas, deduplicate records, and reconcile across sources
+- **AI-Ready Data** — Vectorize, index, and optimize data for agent consumption
+
+### 2. Visual Agent Design
 Drag-and-drop agent composition in the NiFi canvas. Non-developers can understand and modify agent workflows visually.
 
-### 2. Enterprise-Grade Governance
+### 3. Enterprise-Grade Governance
 Every agent action is recorded in NiFi's provenance system. Full audit trail, replay capability, and compliance reporting built-in.
 
-### 3. Back-Pressure & Flow Control
+### 4. Back-Pressure & Flow Control
 NiFi's back-pressure prevents agents from overwhelming downstream systems or burning through API budgets uncontrollably. Queues between agents buffer work naturally.
 
-### 4. Horizontal Scalability
+### 5. Horizontal Scalability
 NiFi clustering distributes agent workloads across nodes. Scale from a single laptop to a multi-node production cluster without changing agent definitions.
 
-### 5. Version-Controlled Agent Blueprints
-FlowSync stores versioned agent definitions. Promote agents from dev → staging → production with full change tracking.
+### 6. FlowSync — Deployment & Management Library
+FlowSync extends across all architecture tiers as a library of reusable pieces and parts. It manages agent blueprints, data pipeline templates, service configs, and infrastructure profiles. Promote from dev → staging → production with full change tracking.
 
-### 6. Tool Sandboxing & Safety
+### 7. Tool Sandboxing & Safety
 Tool execution is sandboxed, rate-limited, and gated by guardrails. High-risk actions require human approval via the HumanInTheLoop processor.
 
-### 7. Heterogeneous Model Support
+### 8. Heterogeneous Model Support
 Mix and match LLM providers per agent. Use Claude for complex reasoning, smaller models for classification, local models for sensitive data.
 
-### 8. MCP Native
+### 9. MCP Native
 First-class support for Model Context Protocol (MCP) — agents can connect to any MCP server as a tool source.
 
 ---
@@ -797,7 +806,7 @@ First-class support for Model Context Protocol (MCP) — agents can connect to a
 | Runtime            | Apache NiFi 2.x (Java 21+)                         |
 | Custom Processors  | Java NAR bundle (nifi-agentflow-nar)                |
 | Coordination       | Apache ZooKeeper (NiFi clustering)                  |
-| Flow Versioning    | Apache FlowSync                                |
+| Deployment Mgmt    | FlowSync (spans all architecture tiers)             |
 | LLM Providers      | Anthropic, OpenAI, AWS Bedrock, Ollama (local)      |
 | Vector Database    | Pinecone / ChromaDB / pgvector                      |
 | Tool Sandboxing    | Docker containers / gVisor                          |
@@ -805,7 +814,7 @@ First-class support for Model Context Protocol (MCP) — agents can connect to a
 | Messaging          | Apache Kafka (input/output)                         |
 | Secrets            | HashiCorp Vault / AWS Secrets Manager               |
 | Monitoring         | Prometheus + Grafana + NiFi Provenance              |
-| Agent Templates    | FlowSync + Git                                 |
+| Agent Templates    | FlowSync Library + Git                              |
 
 ---
 
@@ -828,7 +837,7 @@ First-class support for Model Context Protocol (MCP) — agents can connect to a
 - Agent Trace Viewer UI extension
 
 ### Phase 4: Enterprise
-- FlowSync integration for agent versioning
+- FlowSync deployment library spanning all architecture tiers
 - Cluster-aware agent scaling
 - MCP tool connector
 - Agent Studio UI (visual agent designer)
