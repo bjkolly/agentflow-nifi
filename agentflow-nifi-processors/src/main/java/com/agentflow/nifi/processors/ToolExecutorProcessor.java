@@ -235,6 +235,15 @@ public class ToolExecutorProcessor extends AbstractProcessor {
 
             for (Map<String, Object> toolCall : toolCalls) {
                 final String toolName = (String) toolCall.get("name");
+                if (toolName == null || toolName.isEmpty()) {
+                    getLogger().error("Tool call missing 'name' field in task {}: {}",
+                            flowFile.getAttribute("task.id"), toolCall);
+                    totalErrors.incrementAndGet();
+                    flowFile = session.putAttribute(flowFile, "tool.error", "Tool call missing 'name' field");
+                    flowFile = session.putAttribute(flowFile, "error_stage", ERROR_STAGE);
+                    session.transfer(flowFile, REL_FAILURE);
+                    return;
+                }
                 final String arguments = objectMapper.writeValueAsString(toolCall.get("arguments"));
 
                 // Check guardrails if configured

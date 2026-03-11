@@ -273,33 +273,51 @@ public class TaskPlannerProcessor extends AbstractProcessor {
                 session.transfer(flowFile, REL_SUBTASK);
                 totalSubtasks.incrementAndGet();
             } else {
-                // Create a FlowFile for each subtask step
+                // Create a FlowFile for each subtask step.
+                // IMPORTANT: Collect all cloned FlowFiles before transferring any of them.
+                // If an exception occurs mid-loop, we remove the clones to prevent
+                // partial subtask emission (some subtasks downstream + original to failure).
                 final String stepsJson = objectMapper.writeValueAsString(steps);
-                for (int i = 0; i < steps.size(); i++) {
-                    final Map<String, Object> step = steps.get(i);
-                    FlowFile subtaskFF = session.clone(flowFile);
+                final List<FlowFile> subtaskFlowFiles = new ArrayList<>();
 
-                    final Map<String, String> attrs = new HashMap<>();
-                    attrs.put("plan.steps", stepsJson);
-                    attrs.put("plan.step_count", String.valueOf(steps.size()));
-                    attrs.put("plan.current_step", String.valueOf(i));
-                    attrs.put("plan.strategy", strategy);
-                    attrs.put("plan.latency_ms", String.valueOf(latencyMs));
+                try {
+                    for (int i = 0; i < steps.size(); i++) {
+                        final Map<String, Object> step = steps.get(i);
+                        FlowFile subtaskFF = session.clone(flowFile);
 
-                    final String assignedAgent = (String) step.getOrDefault("assigned_agent", "default");
-                    attrs.put("plan.assigned_agent", assignedAgent);
-                    attrs.put("task.target_agent", assignedAgent);
+                        final Map<String, String> attrs = new HashMap<>();
+                        attrs.put("plan.steps", stepsJson);
+                        attrs.put("plan.step_count", String.valueOf(steps.size()));
+                        attrs.put("plan.current_step", String.valueOf(i));
+                        attrs.put("plan.strategy", strategy);
+                        attrs.put("plan.latency_ms", String.valueOf(latencyMs));
 
-                    final String stepDesc = (String) step.getOrDefault("description", "");
-                    attrs.put("plan.step_description", stepDesc);
+                        final String assignedAgent = (String) step.getOrDefault("assigned_agent", "default");
+                        attrs.put("plan.assigned_agent", assignedAgent);
+                        attrs.put("task.target_agent", assignedAgent);
 
-                    subtaskFF = session.putAllAttributes(subtaskFF, attrs);
+                        final String stepDesc = (String) step.getOrDefault("description", "");
+                        attrs.put("plan.step_description", stepDesc);
 
-                    // Write step details as subtask FlowFile content
-                    final String stepContent = objectMapper.writeValueAsString(step);
-                    subtaskFF = session.write(subtaskFF, out ->
-                            out.write(stepContent.getBytes(StandardCharsets.UTF_8)));
+                        subtaskFF = session.putAllAttributes(subtaskFF, attrs);
 
+                        // Write step details as subtask FlowFile content
+                        final String stepContent = objectMapper.writeValueAsString(step);
+                        subtaskFF = session.write(subtaskFF, out ->
+                                out.write(stepContent.getBytes(StandardCharsets.UTF_8)));
+
+                        subtaskFlowFiles.add(subtaskFF);
+                    }
+                } catch (Exception cloneEx) {
+                    // Clean up any cloned FlowFiles to prevent orphans
+                    for (FlowFile orphan : subtaskFlowFiles) {
+                        session.remove(orphan);
+                    }
+                    throw cloneEx; // re-throw — caught by outer catch, routes original to failure
+                }
+
+                // All subtasks created successfully — now transfer them atomically
+                for (FlowFile subtaskFF : subtaskFlowFiles) {
                     session.transfer(subtaskFF, REL_SUBTASK);
                     totalSubtasks.incrementAndGet();
                 }

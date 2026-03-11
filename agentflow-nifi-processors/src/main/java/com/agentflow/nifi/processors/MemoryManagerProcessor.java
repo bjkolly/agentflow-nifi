@@ -274,18 +274,30 @@ public class MemoryManagerProcessor extends AbstractProcessor {
         final long latencyMs = System.currentTimeMillis() - startTime;
         totalReads.incrementAndGet();
 
+        final String resultsJson;
         try {
-            final String resultsJson = objectMapper.writeValueAsString(results);
-            final Map<String, String> attrs = new HashMap<>();
-            attrs.put("memory.results", resultsJson);
-            attrs.put("memory.result_count", String.valueOf(results.size()));
-            attrs.put("memory.operation_type", "read");
-            attrs.put("memory.collection", collection);
-            attrs.put("memory.latency_ms", String.valueOf(latencyMs));
-            flowFile = session.putAllAttributes(flowFile, attrs);
+            resultsJson = objectMapper.writeValueAsString(results);
         } catch (Exception e) {
-            getLogger().warn("Failed to serialize memory results", e);
+            // If we can't serialize the results, this is a real failure — don't swallow it.
+            // The downstream processor would receive a FlowFile with no results attributes.
+            totalErrors.incrementAndGet();
+            getLogger().error("Failed to serialize memory results for task {} — {} results lost",
+                    flowFile.getAttribute("task.id"), results.size(), e);
+            flowFile = session.putAttribute(flowFile, "memory.error",
+                    "Failed to serialize results: " + e.getMessage());
+            flowFile = session.putAttribute(flowFile, "memory.latency_ms", String.valueOf(latencyMs));
+            flowFile = session.putAttribute(flowFile, "error_stage", ERROR_STAGE);
+            session.transfer(flowFile, REL_FAILURE);
+            return;
         }
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("memory.results", resultsJson);
+        attrs.put("memory.result_count", String.valueOf(results.size()));
+        attrs.put("memory.operation_type", "read");
+        attrs.put("memory.collection", collection);
+        attrs.put("memory.latency_ms", String.valueOf(latencyMs));
+        flowFile = session.putAllAttributes(flowFile, attrs);
 
         session.transfer(flowFile, REL_SUCCESS);
         session.getProvenanceReporter().route(flowFile, REL_SUCCESS.getName(),

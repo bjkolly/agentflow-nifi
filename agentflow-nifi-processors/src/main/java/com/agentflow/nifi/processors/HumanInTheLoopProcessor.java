@@ -250,11 +250,12 @@ public class HumanInTheLoopProcessor extends AbstractProcessor {
             getLogger().info("Human approval requested for task {} via {}: {}",
                     taskId, channel, approvalMessage);
 
-            // Penalize and rollback — FlowFile will be re-processed after penalty duration
-            // This is the NiFi best practice for wait-and-check patterns:
-            // the penalty duration (default 30 sec) acts as the poll interval
-            session.penalize(flowFile);
-            session.rollback();
+            // Rollback with penalize — FlowFile is returned to the queue but penalized,
+            // so it won't be re-processed until the penalty duration (default 30 sec) expires.
+            // This is the NiFi best practice for wait-and-check patterns.
+            // IMPORTANT: session.rollback(true) is the correct API — calling penalize()
+            // then rollback() would cancel the penalize since rollback() reverts all changes.
+            session.rollback(true);
             return;
         }
 
@@ -311,9 +312,8 @@ public class HumanInTheLoopProcessor extends AbstractProcessor {
                     totalTimedOut.incrementAndGet();
                     session.transfer(flowFile, REL_TIMED_OUT);
                 } else {
-                    // Still waiting — penalize and rollback to check again later
-                    session.penalize(flowFile);
-                    session.rollback();
+                    // Still waiting — rollback with penalize to check again after penalty duration
+                    session.rollback(true);
                 }
             }
         }
