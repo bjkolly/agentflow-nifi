@@ -5,7 +5,6 @@ import Container from '@/components/layout/Container';
 import SectionHeading from '@/components/layout/SectionHeading';
 import GlassCard from '@/components/ui/GlassCard';
 import GradientText from '@/components/ui/GradientText';
-import Button from '@/components/ui/Button';
 import FadeUp from '@/components/animations/FadeUp';
 
 /* ─── AgentFlow feature boxes (same pattern as DataFoundationSection) ─── */
@@ -174,9 +173,9 @@ export default function ThreePillarsSection() {
                     agents with governance, compliance, and scale built in from
                     day one.
                   </p>
-                  <Button variant="primary" href="/solutions">
+                  <span className="inline-block bg-gradient-to-r from-llm via-router to-memory text-white font-semibold text-sm px-6 py-3 rounded-xl">
                     Explore AgentFlow →
-                  </Button>
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
