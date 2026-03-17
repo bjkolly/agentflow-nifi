@@ -25,6 +25,13 @@ const INTEREST_OPTIONS = [
 const inputClasses =
   'bg-surface border border-border rounded-lg px-4 py-3 text-text-primary placeholder-text-dim focus:outline-none focus:ring-2 focus:ring-llm focus:border-transparent w-full transition-colors';
 
+/*
+ * To receive form submissions via email, sign up at https://formspree.io
+ * and replace the ID below with your own Formspree form ID.
+ * Free tier: 50 submissions/month.
+ */
+const FORMSPREE_ID = 'myknjwaj';
+
 export default function ContactForm() {
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -51,17 +58,29 @@ export default function ContactForm() {
     setStatus('submitting');
     setErrorMessage('');
 
+    // Client-side validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.name || !formData.email || !formData.message) {
+      setStatus('error');
+      setErrorMessage('Name, email, and message are required.');
+      return;
+    }
+    if (!emailRegex.test(formData.email)) {
+      setStatus('error');
+      setErrorMessage('Please enter a valid email address.');
+      return;
+    }
+
     try {
-      const res = await fetch('/api/contact', {
+      const res = await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify(formData),
       });
 
-      const data = await res.json();
-
       if (!res.ok) {
-        throw new Error(data.error || 'Something went wrong');
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || 'Something went wrong');
       }
 
       setStatus('success');

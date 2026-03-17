@@ -16,7 +16,7 @@ export default function ProblemSection() {
           labelColor="text-guard"
           title={
             <>
-              Enterprise AI Has a <GradientText>Governance Gap</GradientText>
+              Solving the AI <GradientText>Governance Gap</GradientText> with AgentFlow
             </>
           }
           subtitle="Most AI agent frameworks are built for demos, not production. The gap between prototype and enterprise deployment is massive."

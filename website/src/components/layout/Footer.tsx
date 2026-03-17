@@ -3,13 +3,20 @@ import GradientText from '@/components/ui/GradientText';
 
 const productLinks = [
   { href: '/product', label: 'Platform' },
+  { href: '/nifi', label: 'NiFi AI Processors' },
   { href: '/product#architecture', label: 'Architecture' },
   { href: '/product#processors', label: 'Processors' },
-  { href: '/product#governance', label: 'Governance' },
+];
+
+const solutionsLinks = [
+  { href: '/solutions/consulting', label: 'AI Business Consulting' },
+  { href: '/solutions/migration', label: 'Prototype-to-Production' },
+  { href: '/solutions', label: 'AgentFlow Platform' },
 ];
 
 const companyLinks = [
   { href: '/about', label: 'About' },
+  { href: '/blog', label: 'Blog' },
   { href: '/contact', label: 'Contact' },
   { href: 'https://github.com', label: 'GitHub' },
 ];
@@ -18,7 +25,7 @@ export default function Footer() {
   return (
     <footer className="bg-bg2 border-t border-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
           {/* Brand */}
           <div>
             <Link href="/" className="text-xl font-bold">
@@ -33,7 +40,7 @@ export default function Footer() {
           </div>
 
           {/* Product */}
-          <div>
+          <nav aria-label="Product navigation">
             <h4 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-4">
               Product
             </h4>
@@ -49,10 +56,29 @@ export default function Footer() {
                 </li>
               ))}
             </ul>
-          </div>
+          </nav>
+
+          {/* Solutions */}
+          <nav aria-label="Solutions navigation">
+            <h4 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-4">
+              Solutions
+            </h4>
+            <ul className="space-y-2.5">
+              {solutionsLinks.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="text-sm text-text-muted hover:text-text-primary transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
 
           {/* Company */}
-          <div>
+          <nav aria-label="Company navigation">
             <h4 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-4">
               Company
             </h4>
@@ -68,7 +94,7 @@ export default function Footer() {
                 </li>
               ))}
             </ul>
-          </div>
+          </nav>
         </div>
       </div>
 

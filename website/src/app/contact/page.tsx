@@ -8,22 +8,28 @@ import ContactForm from '@/components/sections/contact/ContactForm';
 import { TRUST_BADGES } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: 'Contact',
+  title: 'Contact Foundatation \u2014 Request a Demo',
   description:
-    'Get in touch with Foundatation. Request a demo of AgentFlow or discuss enterprise AI orchestration.',
+    'Get in touch with Foundatation. Request a demo of AgentFlow, schedule a technical deep-dive, or explore enterprise AI orchestration partnerships.',
+  openGraph: {
+    title: 'Contact Foundatation \u2014 Request a Demo',
+    description:
+      'Request a live demo of AgentFlow or discuss enterprise AI agent orchestration for your organization.',
+    url: 'https://www.foundatation.com/contact/',
+    siteName: 'Foundatation',
+    images: [{ url: 'https://www.foundatation.com/og-image.png', width: 1200, height: 630, alt: 'Foundatation \u2014 The Enterprise Data Foundation for AI' }],
+  },
+  alternates: {
+    canonical: 'https://www.foundatation.com/contact/',
+  },
 };
 
 const CONTACT_INFO = [
   {
     icon: '\u{1F4E7}',
     label: 'Email',
-    value: 'hello@foundatation.com',
-    href: 'mailto:hello@foundatation.com',
-  },
-  {
-    icon: '\u{1F4CD}',
-    label: 'Location',
-    value: 'San Francisco, CA',
+    value: 'info@foundatation.com',
+    href: 'mailto:info@foundatation.com',
   },
 ];
 

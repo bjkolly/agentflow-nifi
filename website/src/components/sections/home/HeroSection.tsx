@@ -16,7 +16,11 @@ export default function HeroSection() {
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden">
       {/* 3D Background */}
-      <div className="absolute inset-0 z-0">
+      <div
+        className="absolute inset-0 z-0"
+        aria-label="3D visualization of enterprise AI agent orchestration and data flow pipelines"
+        role="img"
+      >
         <Hero3DScene />
       </div>
 
@@ -30,9 +34,8 @@ export default function HeroSection() {
           <div className="max-w-4xl">
             <FadeUp>
               <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-text-primary leading-[1.1] mb-6">
-                Data is the{' '}
-                <GradientText>Foundatation</GradientText>
-                {' '}to AI
+                Enterprise AI Orchestration:{' '}
+                Data is the <GradientText>Foundatation</GradientText> to AI
               </h1>
             </FadeUp>
 

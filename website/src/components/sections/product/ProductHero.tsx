@@ -37,7 +37,7 @@ export default function ProductHero() {
               Request a Demo
             </Button>
             <Button variant="ghost" href="#processors">
-              Explore Processors
+              Explore Agents
             </Button>
           </div>
         </FadeUp>

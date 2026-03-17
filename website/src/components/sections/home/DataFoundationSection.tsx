@@ -17,8 +17,8 @@ export default function DataFoundationSection() {
           labelColor="#f59e0b"
           title={
             <>
-              Your Data Isn&apos;t Ready for AI.{' '}
-              <GradientText>We Fix That.</GradientText>
+              The Data Foundation for{' '}
+              <GradientText>Enterprise AI</GradientText>
             </>
           }
           subtitle="Most agentic AI companies need clean, API-ready data. We start where your data actually is — messy, siloed, and scattered — and build the foundation for AI."
